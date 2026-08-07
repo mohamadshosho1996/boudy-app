@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 import streamlit as st
 
-# ==================== إعدادات الصفحة والتصميم ====================
+# ==================== إعدادات الصفحة وتصميم الموبايل ====================
 st.set_page_config(
     page_title="برنامج بودى للمشورة الأسرية",
     page_icon="🌸",
@@ -13,9 +13,19 @@ st.set_page_config(
 
 st.markdown("""
     <style>
+    /* إزالة الهوامش الزائدة والمساحات البيضاء في الأسفل والشاشات الصغيرة */
+    .main .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
+    }
+    
+    /* ضبط الخلفية العامة للتطبيق */
     .main {
         background-color: #FFF5F8;
     }
+    
+    /* تنسيق الأزرار لتتناسب مع الشاشات الصغيرة */
     .stButton>button {
         background-color: #EC4899;
         color: white;
@@ -23,20 +33,27 @@ st.markdown("""
         font-weight: bold;
         border: none;
         padding: 0.5rem 1rem;
+        width: 100%;
     }
     .stButton>button:hover {
         background-color: #BE185D;
         color: white;
     }
+    
+    /* تنسيق العناوين */
     h1, h2, h3 {
         color: #701A75;
     }
+    
+    /* إخفاء عناصر التوجيه والتذييل الخاصة بمنصة ستريمليت لإلغاء المساحة البيضاء */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 # ==================== الثوابت وإعدادات البيانات (مطابقة تماماً للابتوب) ====================
 EXCEL_FILE = "template.xlsx"
-USERS_FILE = "users.json"
 
 DEFAULT_USERS = {
     "admin": {"pass": "admin123", "role": "admin", "name": "د. شيماء 🌸"},
@@ -188,9 +205,9 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("هذه النسخة مطابقة تماماً لبرنامج سطح المكتب وتعمل بكفاءة تامة على الموبايل واللابتوب بكل الحقول والمعادلات.")
+    st.write("هذه النسخة مجهزة بالكامل لتملأ شاشة الموبايل واللابتوب بدون أي فراغات بيضاء، وبكل الحقول المطلوبة.")
 
-# ==================== 2. سجل الحوامل (جميع الحقول الكاملة) ====================
+# ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل (النسخة الكاملة)</h2>", unsafe_allow_html=True)
     
@@ -225,7 +242,7 @@ elif menu == "سجل الحوامل":
                     df.to_excel(writer, sheet_name=s, index=False)
             st.success("تم حفظ بيانات الحامل كاملة بنجاح في الإكسيل! ✨")
 
-# ==================== 3. سجل الأطفال (جميع الحقول الكاملة) ====================
+# ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال (النسخة الكاملة)</h2>", unsafe_allow_html=True)
     
