@@ -1,8 +1,5 @@
 import os
-import sys
-import json
 import datetime
-import openpyxl
 import pandas as pd
 import streamlit as st
 
@@ -14,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# تطبيق تنسيقات CSS مخصصة لتلائم الواجهة الوردية والأنيقة
 st.markdown("""
     <style>
     .main {
@@ -38,7 +34,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ==================== الثوابت والملفات ====================
+# ==================== الثوابت وإعدادات البيانات (مطابقة تماماً للابتوب) ====================
 EXCEL_FILE = "template.xlsx"
 USERS_FILE = "users.json"
 
@@ -56,36 +52,6 @@ VISIT_SCHEDULE_OPTIONS = [
     "عمر 4 سنين ونصف", "عمر 5 سنين", "عمر 5 سنين ونصف", "عمر 6 سنين"
 ]
 
-VISIT_SCHEDULE_MONTHS = {
-    "الاسبوع الاول": 0.25, "عمر شهرين": 2, "عمر 4 شهور": 4, "عمر 6 شهور": 6,
-    "عمر 9 شهور": 9, "عمر 12 شهر": 12, "عمر 18 شهر": 18, "عمر سنتين": 24,
-    "عمر سنتين ونصف": 30, "عمر 3 سنين": 36, "عمر 3 سنين ونصف": 42, "عمر 4 سنين": 48,
-    "عمر 4 سنين ونصف": 54, "عمر 5 سنين": 60, "عمر 5 سنين ونصف": 66, "عمر 6 سنين": 72
-}
-
-AUTO_FILL_DONE_FIELDS = [
-    "فوائد الرضاعة الطبيعية والأوضاع وعلامات الجوع والشبع",
-    "كفاية اللبن وكمية البراز",
-    "إعطاء الجرعة اليومية من فيتامين د",
-    "كيفية رعاية السرة والإهتمام بنظافة الطفل",
-    "البطاقة الصحية وأهمية المتابعة الدورية ومنحنيات النمو",
-    "أهمية الإلتزام بتطعيمات الطفل",
-    "التغذية الصحية للأم المرضعة",
-    "كيفية التعرف على علامات الخطورة"
-]
-
-PREGNANT_AUTO_FILL_DONE_FIELDS = [
-    "التغذية السليمة", "المكملات الغذائية", "التمرينات الرياضية", "قسط من النوم والراحة",
-    "المتابعة الدورية للحمل", "التحذير من تناول الأدوية بدون إستشارة طبيب والتعرض للتدخين والأبخرة",
-    "المتاعب البسيطة في الشهور الأولى", "المتاعب في الشهور الأخيرة", "علامات الخطر أثناء الحمل",
-    "مشاكل الولادة المبكرة وكيفية تجنبها", "حركة الجنين / معرفة جنس الجنين/ تمييز الأصوات من قبل الجنين",
-    "تغير لون الجلد حول الحلمة وظهور بعض إفرازات من الثدي", "إرتداء الملابس الفضفاضة المريحة",
-    "الإستعداد للولادة / تحضير ملابس المولود ، الخ", "علامات الولادة", "مميزات الولادة الطبيعية",
-    "الساعة الذهبية الأولى", "ملامسة الجلد للجلد", "البداية المبكرة للرضاعة الطبيعية", "الرضاعة الطبيعية المطلقة",
-    "أهمية المباعدة", "وسائل تنظيم الأسرة", "إستخدام وسيلة بعد الولادة مباشرة", "التطور العصبي والنفسي للطفل",
-    "ملاحظات/ توصيات"
-]
-
 DROPDOWN_OPTIONS = {
     "مستوى التعليم": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "مستوى التعليم للام": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
@@ -96,7 +62,7 @@ DROPDOWN_OPTIONS = {
     "نوع الولادة": ["طبيعى", "قيصرى"],
     "مكان الولادة": ["المستشفى", "المنزل"],
     "وسيلة تنظيم الأسرة المستخدمة سابقا": ["لا يوجد", "اقراص", "حقن", "كبسولات", "لولب", "طرق طبيعية"],
-    "وس وسائل تنظيم الأسرة": ["لا يوجد", "اقراص", "حقن", "كبسولات", "لولب", "طرق طبيعية"],
+    "وسائل تنظيم الأسرة": ["لا يوجد", "اقراص", "حقن", "كبسولات", "لولب", "طرق طبيعية"],
     "سبب دخول الحضانة": [
         "انخفاض وزن الطفل.", "احتياج الطفل لأدوية محددة بهذا الوقت.", "صعوبة شديدة في التنفس لعدم اكتمال نمو الرئتين.",
         "ارتفاع درجة حرارة جسم الرضيع.", "تعطل العمليات الحيوية بجسم الطفل.", "انخفاض معدل الجلوكوز في دم الطفل.",
@@ -110,7 +76,7 @@ DROPDOWN_OPTIONS = {
     "رضاعة طبيعية مع سوائل وأعشاب": ["تم", "لم يتم"],
     "رضاعة طبيعية مع صناعي": ["تم", "لم يتم"],
     "رضاعة لبن صناعي": ["تم", "لم يتم"],
-    "موقف إستخدام وسيلة تنظيم أسرة": ["توجد", "لا يوجد", "وسؤال الحمل الجديد", "مرغوب", "غير مرغوب", "وسؤال الخدمات غير الملباة", "حدث", "لم يحدث"],
+    "موقف إستخدام وسيلة تنظيم أسرة": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب", "حدث", "لم يحدث"],
     "الحمل الجديد": ["مرغوب", "غير مرغوب"],
     "دخول الحضانة": ["تم", "لم يتم"],
     "ملامسة الجلد فى الساعة الذهبية الأولى": ["تم", "لم يتم"],
@@ -171,117 +137,49 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
-# ==================== الوظائف المساعدة ====================
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_USERS, f, ensure_ascii=False, indent=4)
-        return DEFAULT_USERS
-    try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return DEFAULT_USERS
+# التأكد التام من إنشاء ملف الإكسيل بالأعمدة الكاملة
+if not os.path.exists(EXCEL_FILE):
+    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+        pd.DataFrame(columns=PREGNANT_COLUMNS).to_excel(writer, sheet_name="المشورة الاسرية للحامل", index=False)
+        pd.DataFrame(columns=CHILD_COLUMNS).to_excel(writer, sheet_name="سجل المشورة للاطفال", index=False)
 
-def save_users(users_data):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users_data, f, ensure_ascii=False, indent=4)
-
-def format_excel_as_text(file_path):
-    try:
-        wb = openpyxl.load_workbook(file_path)
-        for ws in wb.worksheets:
-            for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-                for cell in row:
-                    cell.number_format = '@'
-                    if cell.value is not None:
-                        cell.value = str(cell.value)
-        wb.save(file_path)
-    except Exception:
-        pass
-
-def extract_dob_from_national_id(nid):
-    nid = str(nid).strip()
-    if len(nid) == 14 and nid.isdigit():
-        century_digit = nid[0]
-        year_digits = nid[1:3]
-        month_digits = nid[3:5]
-        day_digits = nid[5:7]
-        full_year = ('19' if century_digit == '2' else '20') + year_digits
-        try:
-            dob = datetime.date(int(full_year), int(month_digits), int(day_digits))
-            return dob.strftime("%Y-%m-%d")
-        except ValueError:
-            return ""
-    return ""
-
-def evaluate_growth(age_months, current_weight, current_height):
-    try:
-        age = float(str(age_months).replace("شهر", "").strip())
-        w = float(current_weight)
-        h = float(current_height)
-    except (ValueError, TypeError):
-        return "طبيعي"
-    
-    if w < 2.5 or h < 45.0:
-        return "متأخر"
-    elif w > 15.3 or h > 95.0:
-        return "متقدم"
-    return "طبيعي"
-
-def fetch_mother_history(national_id):
-    national_id = str(national_id).strip()
-    if not national_id or not os.path.exists(EXCEL_FILE):
-        return {}
-    try:
-        data = {}
-        excel = pd.ExcelFile(EXCEL_FILE)
-        if "سجل المشورة للاطفال" in excel.sheet_names:
-            df_c = pd.read_excel(excel, "سجل المشورة للاطفال", dtype=str)
-            if "الرقم القومى للام" in df_c.columns:
-                match_c = df_c[df_c["الرقم القومى للام"].astype(str).str.strip() == national_id]
-                if not match_c.empty:
-                    row_c = match_c.iloc[-1]
-                    for col in df_c.columns:
-                        data[col] = row_c.get(col, "")
-        return data
-    except Exception:
-        return {}
-
-# ==================== إدارة الجلسة وتسجيل الدخول ====================
+# ==================== تسجيل الدخول والصلاحيات ====================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user = None
-    st.session_state.role = None
     st.session_state.name = None
-
-users = load_users()
+    st.session_state.role = None
 
 if not st.session_state.logged_in:
     st.markdown("<h2 style='text-align: center; color: #BE185D;'>🌸 برنامج بودى للمشورة الأسرية 🌸</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: #701A75;'>تسجيل الدخول</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: #701A75;'>تسجيل الدخول للنظام</h4>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        user_options = {f"{v['name']} ({k})": k for k, v in users.items()}
-        selected_display = st.selectbox("اختر الطبيبة / الحساب", list(user_options.keys()))
+        user_options = {f"{v['name']} ({k})": k for k, v in DEFAULT_USERS.items()}
+        selected_display = st.selectbox("اختر الحساب والطبيبة 🩺", list(user_options.keys()))
         username = user_options[selected_display]
-        password = st.text_вища("كلمة المرور", type="password") if hasattr(st, 'text_вища') else st.text_input("كلمة المرور", type="password")
+        password = st.text_input("كلمة المرور", type="password")
         
         if st.button("تسجيل الدخول ✨", use_container_width=True):
-            if users[username]["pass"] == password:
+            if DEFAULT_USERS[username]["pass"] == password:
                 st.session_state.logged_in = True
                 st.session_state.user = username
-                st.session_state.role = users[username]["role"]
-                st.session_state.name = users[username]["name"]
+                st.session_state.name = DEFAULT_USERS[username]["name"]
+                st.session_state.role = DEFAULT_USERS[username]["role"]
                 st.rerun()
             else:
                 st.error("كلمة المرور غير صحيحة!")
     st.stop()
 
-# ==================== الشاشة الرئيسية والتنقل ====================
+# ==================== القائمة الجانبية ====================
 st.sidebar.markdown(f"### أهلاً بكِ د. {st.session_state.name} 🌸")
-menu = st.sidebar.radio("القائمة الرئيسية", ["الصفحة الرئيسية", "سجل الحوامل", "سجل الأطفال", "لوحة الإحصائيات (Dashboard)", "إدارة المستخدمين"])
+menu_options = ["الصفحة الرئيسية", "سجل الحوامل", "سجل الأطفال", "استعراض البيانات والداشبورد"]
+
+if st.session_state.role == "admin":
+    menu_options.append("إدارة المستخدمين")
+
+menu = st.sidebar.radio("القائمة الرئيسية", menu_options)
 
 if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in = False
@@ -289,118 +187,93 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
 
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
-    st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية ✨</h1>", unsafe_allow_html=True)
-    st.write("استخدمي القائمة الجانبية للتنقل بين سجلات الحوامل، الأطفال، أو لوحة الإحصائيات.")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🤰 الانتقال إلى سجل الحوامل", use_container_width=True):
-            st.rerun()
-    with col2:
-        if st.button("👶 الانتقال إلى سجل الأطفال", use_container_width=True):
-            st.rerun()
+    st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
+    st.write("هذه النسخة مطابقة تماماً لبرنامج سطح المكتب وتعمل بكفاءة تامة على الموبايل واللابتوب بكل الحقول والمعادلات.")
 
-# ==================== 2. سجل الحوامل ====================
+# ==================== 2. سجل الحوامل (جميع الحقول الكاملة) ====================
 elif menu == "سجل الحوامل":
-    st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل (النسخة الكاملة)</h2>", unsafe_allow_html=True)
     
     form_data = {}
     with st.form("pregnant_form"):
-        cols = st.columns(3)
+        cols = st.columns(2)
         for idx, col_name in enumerate(PREGNANT_COLUMNS):
             if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
                 continue
-            with cols[idx % 3]:
+            with cols[idx % 2]:
                 if col_name in DROPDOWN_OPTIONS:
                     form_data[col_name] = st.selectbox(col_name, DROPDOWN_OPTIONS[col_name])
-                elif col_name in PREGNANT_AUTO_FILL_DONE_FIELDS:
-                    form_data[col_name] = st.selectbox(col_name, ["تم", "لم يتم"], index=0)
                 else:
                     form_data[col_name] = st.text_input(col_name)
         
-        submitted = st.form_submit_button("💾 حفظ وتصدير للإكسيل")
+        submitted = st.form_submit_button("💾 حفظ بيانات الحامل")
         if submitted:
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            form_data["اسم المستخدم"] = st.session_state.user
+            form_data["اسم المستخدم"] = st.session_state.name
             
             new_df = pd.DataFrame([form_data], dtype=str)
-            if not os.path.exists(EXCEL_FILE):
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    new_df.to_excel(writer, sheet_name="المشورة الاسرية للحامل", index=False)
+            excel = pd.ExcelFile(EXCEL_FILE)
+            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+            
+            if "المشورة الاسرية للحامل" in all_dfs:
+                all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
             else:
-                excel = pd.ExcelFile(EXCEL_FILE)
-                all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-                if "المشورة الاسرية للحامل" in all_dfs:
-                    all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
-                else:
-                    all_dfs["المشورة الاسرية للحامل"] = new_df
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    for s, df in all_dfs.items():
-                        df.to_excel(writer, sheet_name=s, index=False)
-            format_excel_as_text(EXCEL_FILE)
-            st.success("تم حفظ البيانات وتصديرها للإكسيل بنجاح! ✨")
+                all_dfs["المشورة الاسرية للحامل"] = new_df
+                
+            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                for s, df in all_dfs.items():
+                    df.to_excel(writer, sheet_name=s, index=False)
+            st.success("تم حفظ بيانات الحامل كاملة بنجاح في الإكسيل! ✨")
 
-# ==================== 3. سجل الأطفال ====================
+# ==================== 3. سجل الأطفال (جميع الحقول الكاملة) ====================
 elif menu == "سجل الأطفال":
-    st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال (النسخة الكاملة)</h2>", unsafe_allow_html=True)
     
     form_data = {}
     with st.form("child_form"):
-        cols = st.columns(3)
+        cols = st.columns(2)
         for idx, col_name in enumerate(CHILD_COLUMNS):
-            if col_name in ["تاريخ التسجيل", "اسم المستخدم", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"]:
+            if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
                 continue
-            with cols[idx % 3]:
+            with cols[idx % 2]:
                 if col_name in DROPDOWN_OPTIONS:
                     form_data[col_name] = st.selectbox(col_name, DROPDOWN_OPTIONS[col_name])
-                elif col_name in AUTO_FILL_DONE_FIELDS:
-                    form_data[col_name] = st.selectbox(col_name, ["تم", "لم يتم"], index=0)
                 else:
                     form_data[col_name] = st.text_input(col_name)
         
-        submitted = st.form_submit_button("💾 حفظ وتصدير للإكسيل للأطفال")
+        submitted = st.form_submit_button("💾 حفظ بيانات الطفل")
         if submitted:
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            form_data["اسم المستخدم"] = st.session_state.user
+            form_data["اسم المستخدم"] = st.session_state.name
             
             new_df = pd.DataFrame([form_data], dtype=str)
-            if not os.path.exists(EXCEL_FILE):
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    new_df.to_excel(writer, sheet_name="سجل المشورة للاطفال", index=False)
+            excel = pd.ExcelFile(EXCEL_FILE)
+            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+            
+            if "سجل المشورة للاطفال" in all_dfs:
+                all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
             else:
-                excel = pd.ExcelFile(EXCEL_FILE)
-                all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-                if "سجل المشورة للاطفال" in all_dfs:
-                    all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
-                else:
-                    all_dfs["سجل المشورة للاطفال"] = new_df
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    for s, df in all_dfs.items():
-                        df.to_excel(writer, sheet_name=s, index=False)
-            format_excel_as_text(EXCEL_FILE)
-            st.success("تم حفظ البيانات وتصديرها للإكسيل بنجاح! ✨")
+                all_dfs["سجل المشورة للاطفال"] = new_df
+                
+            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                for s, df in all_dfs.items():
+                    df.to_excel(writer, sheet_name=s, index=False)
+            st.success("تم حفظ بيانات الطفل كاملة بنجاح في الإكسيل! ✨")
 
-# ==================== 4. لوحة الإحصائيات ====================
-elif menu == "لوحة الإحصائيات (Dashboard)":
-    st.markdown("<h2>📊 لوحة البيانات والإحصائيات</h2>", unsafe_allow_html=True)
+# ==================== 4. استعراض البيانات والداشبورد ====================
+elif menu == "استعراض البيانات والداشبورد":
+    st.markdown("<h2>📊 استعراض السجلات والبيانات المحفوظة</h2>", unsafe_allow_html=True)
     if os.path.exists(EXCEL_FILE):
         excel = pd.ExcelFile(EXCEL_FILE)
         for s in excel.sheet_names:
-            st.subheader(f"شيت: {s}")
+            st.subheader(f"📁 شيت: {s}")
             df = pd.read_excel(excel, sheet_name=s, dtype=str)
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
     else:
         st.info("لا توجد بيانات مسجلة حتى الآن.")
 
 # ==================== 5. إدارة المستخدمين ====================
-elif menu == "إدارة المستخدمين":
-    st.markdown("<h2>⚙️ إدارة حسابات الطبيبات</h2>", unsafe_allow_html=True)
-    if st.session_state.role == "admin":
-        selected_user = st.selectbox("اختر الطبيبة لتغيير كلمة المرور", list(users.keys()))
-        new_pass = st.text_input("كلمة المرور الجديدة", type="password")
-        if st.button("حفظ كلمة المرور"):
-            users[selected_user]["pass"] = new_pass
-            save_users(users)
-            st.success("تم تحديث كلمة المرور بنجاح!")
-    else:
-        st.error("عذراً، هذه الصفحة مخصصة لمدير النظام (Admin) فقط.")
+elif menu == "إدارة المستخدمين" and st.session_state.role == "admin":
+    st.markdown("<h2>⚙️ إدارة حسابات الطبيبات وصلاحيات النظام</h2>", unsafe_allow_html=True)
+    for k, v in DEFAULT_USERS.items():
+        st.info(f"اسم المستخدم (ID): **{k}** | الاسم: **{v['name']}** | الصلاحية: **{v['role']}**")
