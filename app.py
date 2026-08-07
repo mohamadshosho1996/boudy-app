@@ -13,19 +13,14 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-    /* إزالة الهوامش الزائدة والمساحات البيضاء */
     .main .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.0rem;
         padding-bottom: 1rem;
         max-width: 100%;
     }
-    
-    /* ضبط الخلفية العامة للتطبيق */
     .main {
         background-color: #FFF5F8;
     }
-    
-    /* تنسيق الأزرار لتتناسب مع الشاشات الصغيرة */
     .stButton>button {
         background-color: #EC4899;
         color: white;
@@ -39,14 +34,9 @@ st.markdown("""
         background-color: #BE185D;
         color: white;
     }
-    
-    /* تنسيق العناوين */
     h1, h2, h3 {
         color: #701A75;
     }
-    
-    /* إبقاء الهيدر ظاهراً لضمان ظهور زر القائمة الجانبية (السهم) على الموبايل */
-    #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
@@ -153,6 +143,44 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
+# دالة استخراج تاريخ الميلاد والعمر من الرقم القومي المصري
+def parse_national_id(nat_id):
+    if nat_id and len(nat_id) == 14 and nat_id.isdigit():
+        century_code = int(nat_id[0])
+        year_digits = int(nat_id[1:3])
+        month = int(nat_id[3:5])
+        day = int(nat_id[5:7])
+        
+        if century_code == 2:
+            century = 1900
+        elif century_code == 3:
+            century = 2000
+        else:
+            century = 1900
+            
+        birth_year = century + year_digits
+        try:
+            birth_date = datetime.date(birth_year, month, day)
+            today = datetime.date.today()
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            return str(birth_date), str(age)
+        except ValueError:
+            return "", ""
+    return "", ""
+
+# دالة البحث عن البيانات السابقة للرقم القومي في الإكسيل
+def get_existing_data(nat_id, sheet_name, id_column):
+    if os.path.exists(EXCEL_FILE) and nat_id and len(nat_id) == 14:
+        try:
+            df = pd.read_excel(EXCEL_FILE, sheet_name=sheet_name, dtype=str)
+            if id_column in df.columns:
+                match = df[df[id_column] == nat_id]
+                if not match.empty:
+                    return match.iloc[-1].to_dict()
+        except Exception:
+            pass
+    return {}
+
 # التأكد التام من إنشاء ملف الإكسيل بالأعمدة الكاملة
 if not os.path.exists(EXCEL_FILE):
     with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
@@ -188,37 +216,65 @@ if not st.session_state.logged_in:
                 st.error("كلمة المرور غير صحيحة!")
     st.stop()
 
-# ==================== القائمة الجانبية ====================
-st.sidebar.markdown(f"### أهلاً بكِ د. {st.session_state.name} 🌸")
+# ==================== القائمة والخيارات المشتركة ====================
 menu_options = ["الصفحة الرئيسية", "سجل الحوامل", "سجل الأطفال", "استعراض البيانات والداشبورد"]
-
 if st.session_state.role == "admin":
     menu_options.append("إدارة المستخدمين")
 
-menu = st.sidebar.radio("القائمة الرئيسية", menu_options)
+st.sidebar.markdown(f"### أهلاً بكِ د. {st.session_state.name} 🌸")
+sidebar_menu = st.sidebar.radio("القائمة الرئيسية (جانبية)", menu_options, key="sidebar_radio")
 
 if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in = False
     st.rerun()
 
+st.markdown("---")
+col_mobile_nav, col_mobile_logout = st.columns([3, 1])
+with col_mobile_nav:
+    main_screen_menu = st.selectbox("📱 انتقل مباشرة إلى القسم المطلوب:", menu_options, key="mobile_selectbox")
+with col_mobile_logout:
+    if st.button("خروج 🚪"):
+        st.session_state.logged_in = False
+        st.rerun()
+
+menu = main_screen_menu
+st.markdown("---")
+
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("تم ضبط شريط التنقل العلوي وزر القائمة الجانبية ليظهر بوضوح تام على شاشات الهواتف المحمولة.")
+    st.write("النظام جاهز تماماً لتسجيل الحالات، واستخراج التواريخ والعمر من الرقم القومي، واسترجاع البيانات المسجلة مسبقاً تلقائياً.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
-    form_data = {}
     with st.form("pregnant_form"):
+        form_data = {}
+        
+        nat_id = st.text_input("الرقم القومى")
+        form_data["الرقم القومى"] = nat_id
+        
+        old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
+        if old_data:
+            st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية تلقائياً!")
+
+        _, calc_age = parse_national_id(nat_id)
+        
         for col_name in PREGNANT_COLUMNS:
-            if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
+            if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
                 continue
+            
+            default_val = old_data.get(col_name, "")
+            if col_name == "العمر الحالى" and not default_val:
+                default_val = calc_age
+                
             if col_name in DROPDOWN_OPTIONS:
-                form_data[col_name] = st.selectbox(col_name, DROPDOWN_OPTIONS[col_name])
+                options = DROPDOWN_OPTIONS[col_name]
+                idx = options.index(default_val) if default_val in options else 0
+                form_data[col_name] = st.selectbox(col_name, options, index=idx)
             else:
-                form_data[col_name] = st.text_input(col_name)
+                form_data[col_name] = st.text_input(col_name, value=str(default_val))
         
         submitted = st.form_submit_button("💾 حفظ بيانات الحامل")
         if submitted:
@@ -243,15 +299,35 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    form_data = {}
     with st.form("child_form"):
+        form_data = {}
+        
+        nat_id_mom = st.text_input("الرقم القومى للام")
+        form_data["الرقم القومى للام"] = nat_id_mom
+        
+        old_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
+        if not old_data:
+            old_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
+            
+        if old_data:
+            st.success("✨ تم العثور على سجل سابق للأم وتم ملء بياناتها تلقائياً!")
+
+        b_date_mom, _ = parse_national_id(nat_id_mom)
+        
         for col_name in CHILD_COLUMNS:
-            if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
+            if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                 continue
+            
+            default_val = old_data.get(col_name, "")
+            if col_name == "تاريخ ميلاد الام" and not default_val:
+                default_val = b_date_mom
+                
             if col_name in DROPDOWN_OPTIONS:
-                form_data[col_name] = st.selectbox(col_name, DROPDOWN_OPTIONS[col_name])
+                options = DROPDOWN_OPTIONS[col_name]
+                idx = options.index(default_val) if default_val in options else 0
+                form_data[col_name] = st.selectbox(col_name, options, index=idx)
             else:
-                form_data[col_name] = st.text_input(col_name)
+                form_data[col_name] = st.text_input(col_name, value=str(default_val))
         
         submitted = st.form_submit_button("💾 حفظ بيانات الطفل")
         if submitted:
