@@ -130,7 +130,7 @@ CHILD_COLUMNS = [
     "تاريخ التسجيل", "اسم المستخدم", "تاريخ اول زيارة", "رقم الحالة", "اسم الام", "الرقم القومى للام", "رقم الموبايل للام", "تاريخ ميلاد الام",
     "مستوى التعليم للام", "عدد الاطفال لدى الام", "المدة بين اخر حملين", "الوظيفة للام", "الرقم القومى للاب",
     "رقم الموبايل للاب", "اسم الاب", "مستوى التعليم للاب", "اسم الطفل", "تاريخ الميلاد للطفل", "العمر الحالى للطفل (شهور)",
-    "العمر الرحمى للطفل (أسابيع)", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "نوع الولادة", "مكان الولادة", "وزن الطفل عند الولادة",
+    "العمر الرحمى للطفل (أسابيع)", "مكان المتابعة", "وحدة", "مستشفى", "أخرى", "مصدر الاحاله", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "نوع الولادة", "مكان الولادة", "وزن الطفل عند الولادة",
     "طول الطفل عند الولادة", "مقاس راس الطفل عند الولادة", "دخول الحضانة", "سبب دخول الحضانة", "مدة البقاء فى الحضانة",
     "ملامسة الجلد فى الساعة الذهبية الأولى", "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "موعد الزيارة",
     "تاريخ الزيارة", "رضاعة طبيعية مطلقة", "رضاعة طبيعية مع سوائل وأعشاب", "رضاعة طبيعية مع صناعي",
@@ -308,7 +308,12 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
+    # إعادة ترتيب الواجهة: اسم الأم قبل الرقم القومي
+    col_m1, col_m2 = st.columns(2)
+    with col_m1:
+        name_mom_input = st.text_input("اسم الام", key="child_name_mom_input")
+    with col_m2:
+        nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
     if nat_id_mom and len(nat_id_mom) == 14:
         if st.button("🔍 استرجاع بيانات الأم"):
@@ -319,7 +324,7 @@ elif menu == "سجل الأطفال":
             b_date_mom, _ = parse_national_id(nat_id_mom)
             
             for col_name in CHILD_COLUMNS:
-                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام"]:
                     continue
                 val = found_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
                 if col_name == "تاريخ ميلاد الام" and not val:
@@ -332,9 +337,10 @@ elif menu == "سجل الأطفال":
 
     form_data = {}
     form_data["الرقم القومى للام"] = nat_id_mom
+    form_data["اسم الام"] = name_mom_input
     
     for col_name in CHILD_COLUMNS:
-        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"]:
             continue
             
         if f"c_{col_name}" not in st.session_state:
@@ -348,6 +354,17 @@ elif menu == "سجل الأطفال":
         else:
             form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
     
+    # حقول القوائم المنسدلة الذكية المطلوبة للمتابعة ومصدر الإحالة
+    st.markdown("---")
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        place_choice = st.selectbox("مكان المتابعة", ["وحدة", "مستشفى", "أخرى"], key="c_place_choice")
+    with col_c2:
+        source_choice = st.selectbox("مصدر الاحاله", ["مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"], key="c_source_choice")
+    
+    form_data["مكان المتابعة"] = place_choice
+    form_data["مصدر الاحاله"] = source_choice
+    
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
             st.error("برجاء إدخال الرقم القومي للأم صحيحاً مكوناً من 14 رقماً!")
@@ -355,18 +372,18 @@ elif menu == "سجل الأطفال":
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             form_data["اسم المستخدم"] = st.session_state.name
             
-            # --- المنطق البرمجي لتوزيع خيارات مكان المتابعة ومصدر الإحالة تلقائياً ---
-            place_val = form_data.get("مكان المتابعة", "")
-            form_data["وحدة"] = "تم" if place_val == "وحدة" else ""
-            form_data["مستشفى"] = "تم" if place_val == "مستشفى" else ""
-            form_data["أخرى"] = "تم" if place_val == "أخرى" else ""
+            # التوزيع التلقائي في الأعمدة المنفصلة للإكسيل
+            form_data["وحدة"] = "تم" if place_choice == "وحدة" else ""
+            form_data["مستشفى"] = "تم" if place_choice == "وحدة" else "" # تم تعديلها لتوافق الاختيار بدقة
+            # تصحيح منطق التوزيع لأعمدة مكان المتابعة
+            form_data["وحدة"] = "تم" if place_choice == "وحدة" else ""
+            form_data["مستشفى"] = "تم" if place_choice == "مستشفى" else ""
+            form_data["أخرى"] = "تم" if place_choice == "أخرى" else ""
 
-            source_val = form_data.get("مصدر الاحاله", "")
-            form_data["مستشفى الولادة"] = "تم" if source_val == "مستشفى الولادة" else ""
-            form_data["عيادة خاصة"] = "تم" if source_val == "عيادة خاصة" else ""
-            form_data["عيادة التطعيمات"] = "تم" if source_val == "عيادة التطعيمات" else ""
-            form_data["نصيحة"] = "تم" if source_val == "نصيحة" else ""
-            # ----------------------------------------------------------------------
+            form_data["مستشفى الولادة"] = "تم" if source_choice == "مستشفى الولادة" else ""
+            form_data["عيادة خاصة"] = "تم" if source_choice == "عيادة خاصة" else ""
+            form_data["عيادة التطعيمات"] = "تم" if source_choice == "عيادة التطعيمات" else ""
+            form_data["نصيحة"] = "تم" if source_choice == "نصيحة" else ""
             
             new_df = pd.DataFrame([form_data], dtype=str)
             excel = pd.ExcelFile(EXCEL_FILE)
@@ -380,7 +397,7 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل وتوزيع الاختيرات في أعمدة الإكسيل بنجاح! ✨")
+            st.success("تم حفظ بيانات الطفل وتوزيع الاختيارات في أعمدة الإكسيل بنجاح! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
