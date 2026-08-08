@@ -2,6 +2,7 @@ import os
 import datetime
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ==================== إعدادات الصفحة والتصميم ====================
 st.set_page_config(
@@ -143,6 +144,70 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
+def voice_input_component(label, key_name):
+    """دالة لإنشاء حقل نصي مدمج مع زر ميكروفون للإملاء الصوتي"""
+    current_val = st.session_state.get(key_name, "")
+    col_input, col_mic = st.columns([5, 1])
+    with col_input:
+        val = st.text_input(label, value=current_val, key=key_name)
+    with col_mic:
+        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+        mic_html = f"""
+        <button id="mic_{key_name}" onclick="toggleSpeech('{key_name}')" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:14px; width:100%;">🎙️</button>
+        <script>
+        function toggleSpeech(key) {{
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {{
+                alert("متصفحك لا يدعم الإملاء الصوتي");
+                return;
+            }}
+            let btn = document.getElementById('mic_' + key);
+            if (window.isRecording && window.activeKey === key) {{
+                window.recognition.stop();
+                window.isRecording = false;
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+                return;
+            }}
+            window.recognition = new SpeechRecognition();
+            window.recognition.lang = 'ar-EG';
+            window.recognition.continuous = false;
+            window.recognition.interimResults = false;
+            window.recognition.onstart = function() {{
+                window.isRecording = true;
+                window.activeKey = key;
+                btn.style.backgroundColor = '#DC2626';
+                btn.innerText = '⏹️';
+            }};
+            window.recognition.onresult = function(event) {{
+                const transcript = event.results[0][0].transcript;
+                const inputElem = document.querySelector('input[aria-label*="' + key + '"]') || document.getElementById(key) || parent.document.querySelector('input[aria-label*="' + key + '"]');
+                // تحديث مباشر عبر محاكاة الإدخال في ستريمليت
+                const inputs = window.parent.document.querySelectorAll('input');
+                inputs.forEach(inp => {{
+                    if(inp.value !== undefined && inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes(key)) {{
+                        inp.value = transcript;
+                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    }}
+                }});
+            }};
+            window.recognition.onerror = function() {{
+                window.isRecording = false;
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }};
+            window.recognition.onend = function() {{
+                window.isRecording = false;
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }};
+            window.recognition.start();
+        }}
+        </script>
+        """
+        components.html(mic_html, height=50)
+    return val
+
 def parse_national_id(nat_id):
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
         century_code = int(nat_id[0])
@@ -235,19 +300,17 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً لتسجيل الحالات، واستخراج التواريخ وعمر الأم، والحسابات التلقائية لمحيط الرأس ومستويات النمو والتطور في أماكنها الطبيعية بالسجلات.")
+    st.write("النظام جاهز تماماً للحسابات التلقائية لمحيط الرأس والنمو، مع دعم الإملاء الصوتي الكامل.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
-    
     nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
     if nat_id and len(nat_id) == 14:
         if st.button("🔍 استرجاع البيانات المسجلة"):
             old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
             _, calc_age = parse_national_id(nat_id)
-            
             for col_name in PREGNANT_COLUMNS:
                 if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
                     continue
@@ -255,14 +318,10 @@ elif menu == "سجل الحوامل":
                 if col_name == "العمر الحالى" and not val:
                     val = calc_age
                 st.session_state[f"p_{col_name}"] = str(val)
-            
-            if old_data:
-                st.success("✨ تم العثور على سجل سابق وتم استرجاع كافة بيانات الأم والأسرة بنجاح!")
             st.rerun()
 
     form_data = {}
     form_data["الرقم القومى"] = nat_id
-    
     for col_name in PREGNANT_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
             continue
@@ -275,7 +334,7 @@ elif menu == "سجل الحوامل":
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
         else:
-            form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+            form_data[col_name] = voice_input_component(col_name, f"p_{col_name}")
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
         if not nat_id or len(nat_id) != 14:
@@ -283,20 +342,14 @@ elif menu == "سجل الحوامل":
         else:
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             form_data["اسم المستخدم"] = st.session_state.name
-            
             new_df = pd.DataFrame([form_data], dtype=str)
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            
-            if "المشورة الاسرية للحامل" in all_dfs:
-                all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
-            else:
-                all_dfs["المشورة الاسرية للحامل"] = new_df
-                
+            all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True) if "المشورة الاسرية للحامل" in all_dfs else new_df
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الحامل كاملة بنجاح في الإكسيل! ✨")
+            st.success("تم حفظ بيانات الحامل بنجاح! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
@@ -310,31 +363,21 @@ elif menu == "سجل الأطفال":
     
     if nat_id_mom and len(nat_id_mom) == 14:
         if st.button("🔍 استرجاع كافة بيانات الأب والأم والأسرة"):
-            found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
-            if not found_data:
-                found_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
-            
+            found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام") or get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
             b_date_mom, _ = parse_national_id(nat_id_mom)
-            
             for col_name in CHILD_COLUMNS:
                 if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                     continue
                 val = found_data.get(col_name, "")
-                if col_name == "اسم الام" and not val:
-                    val = name_mom_input
-                if col_name == "تاريخ ميلاد الام" and not val:
-                    val = b_date_mom
+                if col_name == "اسم الام" and not val: val = name_mom_input
+                if col_name == "تاريخ ميلاد الام" and not val: val = b_date_mom
                 st.session_state[f"c_{col_name}"] = str(val)
-                
-            if found_data:
-                st.success("✨ تم العثور على السجل السابق واستدعاء جميع بيانات الأب، الأم، التعليم، الوظيفة، وعدد الأطفال بنجاح!")
             st.rerun()
 
     form_data = {}
     form_data["الرقم القومى للام"] = nat_id_mom
     form_data["اسم الام"] = name_mom_input
 
-    # منطق الحسابات التلقائية لمحيط الرأس والتطور الحركي
     for col_name in CHILD_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "مقاس راس الطفل عند الولادة", "محيط الرأس (سم)", "النمو والتطور الحركي"]:
             continue
@@ -348,11 +391,10 @@ elif menu == "سجل الأطفال":
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
         else:
-            # حقول خاصة يتم إدخالها وترتيبها بدقة حسب التسلسل المطلوب
             if col_name == "طول الطفل عند الولادة":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل عند الولادة تلقائياً بعد حقل طول الطفل عند الولادة
+                # حساب محيط رأس الطفل عند الولادة تلقائياً وملئه في الحقل فوراً
                 birth_w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                 calc_b_head = ""
                 try:
@@ -360,13 +402,13 @@ elif menu == "سجل الأطفال":
                         calc_b_head = str(round((float(form_data[col_name]) / 2) + (float(birth_w_val) * 0.5) + 10, 1))
                 except ValueError:
                     pass
-                
-                form_data["مقاس راس الطفل عند الولادة"] = st.text_input("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", value=calc_b_head, key="c_calc_birth_head")
+                st.session_state["c_مقاس راس الطفل عند الولادة"] = calc_b_head
+                form_data["مقاس راس الطفل عند الولادة"] = voice_input_component("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", "c_مقاس راس الطفل عند الولادة")
 
             elif col_name == "الوزن (كجم)":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل الحالي تلقائياً بعد حقل الوزن الحالي
+                # حساب محيط رأس الطفل الحالي تلقائياً وملئه في الحقل فوراً
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
                 curr_w_v = form_data[col_name]
                 calc_c_head = ""
@@ -375,11 +417,10 @@ elif menu == "سجل الأطفال":
                         calc_c_head = str(round(35 + (float(curr_age_v) * 0.5) + (float(curr_w_v) * 0.2), 1))
                 except ValueError:
                     pass
-                
-                form_data["محيط الرأس (سم)"] = st.text_input("محيط الرأس الحالي (سم) [محسوب تلقائياً]", value=calc_c_head, key="c_calc_curr_head")
+                st.session_state["c_محيط الرأس (سم)"] = calc_c_head
+                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب تلقائياً]", "c_محيط الرأس (سم)")
 
             elif col_name == "النمو والتطور الحركي":
-                # حساب النمو والتطور الحركي تلقائياً وضعه قبل حقل التطور الإدراكي والمعرفي
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
                 curr_w_v = st.session_state.get("c_الوزن (كجم)", "3.0")
                 auto_motor = "طبيعي"
@@ -401,18 +442,8 @@ elif menu == "سجل الأطفال":
                 default_m_idx = m_options.index(auto_motor) if auto_motor in m_options else 0
                 form_data[col_name] = st.selectbox("النمو والتطور الحركي [محسوب تلقائياً وقابل للتعديل]", m_options, index=default_m_idx, key="c_auto_motor")
             else:
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
 
-    # القوائم والخيارات الختامية للطفل
-    col_c1, col_c2 = st.columns(2)
-    with col_c1:
-        place_choice = st.selectbox("مكان المتابعة", ["وحدة", "مستشفى", "أخرى"], key="c_place_choice")
-    with col_c2:
-        source_choice = st.selectbox("مصدر الاحاله", ["مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"], key="c_source_choice")
-    
-    form_data["مكان المتابعة"] = place_choice
-    form_data["مصدر الاحاله"] = source_choice
-    
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
             st.error("برجاء إدخال الرقم القومي للأم صحيحاً مكوناً من 14 رقماً!")
@@ -420,28 +451,24 @@ elif menu == "سجل الأطفال":
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             form_data["اسم المستخدم"] = st.session_state.name
             
-            form_data["وحدة"] = "تم" if place_choice == "وحدة" else ""
-            form_data["مستشفى"] = "تم" if place_choice == "مستشفى" else ""
-            form_data["أخرى"] = "تم" if place_choice == "أخرى" else ""
-
-            form_data["مستشفى الولادة"] = "تم" if source_choice == "مستشفى الولادة" else ""
-            form_data["عيادة خاصة"] = "تم" if source_choice == "عيادة خاصة" else ""
-            form_data["عيادة التطعيمات"] = "تم" if source_choice == "عيادة التطعيمات" else ""
-            form_data["نصيحة"] = "تم" if source_choice == "نصيحة" else ""
+            place_val = form_data.get("مكان المتابعة", "")
+            source_val = form_data.get("مصدر الاحاله", "")
+            form_data["وحدة"] = "تم" if place_val == "وحدة" else ""
+            form_data["مستشفى"] = "تم" if place_val == "مستشفى" else ""
+            form_data["أخرى"] = "تم" if place_val == "أخرى" else ""
+            form_data["مستشفى الولادة"] = "تم" if source_val == "مستشفى الولادة" else ""
+            form_data["عيادة خاصة"] = "تم" if source_val == "عيادة خاصة" else ""
+            form_data["عيادة التطعيمات"] = "تم" if source_val == "عيادة التطعيمات" else ""
+            form_data["نصيحة"] = "تم" if source_val == "نصيحة" else ""
             
             new_df = pd.DataFrame([form_data], dtype=str)
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            
-            if "سجل المشورة للاطفال" in all_dfs:
-                all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
-            else:
-                all_dfs["سجل المشورة للاطفال"] = new_df
-                
+            all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True) if "سجل المشورة للاطفال" in all_dfs else new_df
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل والحسابات التلقائية في أماكنها بدقة داخل ملف الإكسيل! ✨")
+            st.success("تم حفظ بيانات الطفل والحسابات التلقائية في الإكسيل بنجاح! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
