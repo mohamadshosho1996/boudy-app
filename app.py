@@ -145,7 +145,6 @@ CHILD_COLUMNS = [
 ]
 
 def voice_input_component(label, key_name):
-    """دالة لإنشاء حقل نصي مدمج مع زر ميكروفون للإملاء الصوتي"""
     current_val = st.session_state.get(key_name, "")
     col_input, col_mic = st.columns([5, 1])
     with col_input:
@@ -181,8 +180,6 @@ def voice_input_component(label, key_name):
             }};
             window.recognition.onresult = function(event) {{
                 const transcript = event.results[0][0].transcript;
-                const inputElem = document.querySelector('input[aria-label*="' + key + '"]') || document.getElementById(key) || parent.document.querySelector('input[aria-label*="' + key + '"]');
-                // تحديث مباشر عبر محاكاة الإدخال في ستريمليت
                 const inputs = window.parent.document.querySelectorAll('input');
                 inputs.forEach(inp => {{
                     if(inp.value !== undefined && inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes(key)) {{
@@ -300,7 +297,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً للحسابات التلقائية لمحيط الرأس والنمو، مع دعم الإملاء الصوتي الكامل.")
+    st.write("النظام جاهز تماماً للحسابات التلقائية المباشرة لمحيط الرأس والنمو وترتيب الحقول بدقة.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -394,7 +391,7 @@ elif menu == "سجل الأطفال":
             if col_name == "طول الطفل عند الولادة":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل عند الولادة تلقائياً وملئه في الحقل فوراً
+                # حساب محيط رأس الطفل عند الولادة تلقائياً بعد طول الولادة
                 birth_w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                 calc_b_head = ""
                 try:
@@ -405,12 +402,12 @@ elif menu == "سجل الأطفال":
                 st.session_state["c_مقاس راس الطفل عند الولادة"] = calc_b_head
                 form_data["مقاس راس الطفل عند الولادة"] = voice_input_component("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", "c_مقاس راس الطفل عند الولادة")
 
-            elif col_name == "الوزن (كجم)":
+            elif col_name == "الطول (سم)":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل الحالي تلقائياً وملئه في الحقل فوراً
+                # حساب محيط رأس الطفل الحالي تلقائياً وضعه بعد حقل طول الطفل الحالي مباشرة
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
-                curr_w_v = form_data[col_name]
+                curr_w_v = st.session_state.get("c_الوزن (كجم)", "3.0")
                 calc_c_head = ""
                 try:
                     if curr_age_v and curr_w_v:
