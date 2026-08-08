@@ -2,6 +2,7 @@ import os
 import datetime
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ==================== إعدادات الصفحة والتصميم ====================
 st.set_page_config(
@@ -144,8 +145,57 @@ CHILD_COLUMNS = [
 ]
 
 def voice_input_component(label, key_name):
-    """إدخال نصي مباشر مع دعم الكتابة اليدوية أو النصية المباشرة بكل ثبات"""
-    val = st.text_input(label, key=key_name)
+    col_input, col_mic = st.columns([5, 1])
+    with col_input:
+        val = st.text_input(label, key=key_name)
+    with col_mic:
+        st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
+        mic_html = f"""
+        <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:16px; width:100%;">🎙️</button>
+        <script>
+        function startDictation_{key_name}() {{
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
+                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
+                return;
+            }}
+            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ar-EG';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            
+            let btn = document.getElementById('mic_{key_name}');
+            btn.style.backgroundColor = '#DC2626';
+            btn.innerText = '🔴';
+            
+            recognition.onresult = function(event) {{
+                let speechResult = event.results[0][0].transcript;
+                const inputs = window.parent.document.querySelectorAll('input');
+                inputs.forEach(inp => {{
+                    if (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes('{label}')) {{
+                        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
+                        nativeInputValueSetter.call(inp, speechResult);
+                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    }}
+                }});
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }};
+            
+            recognition.onerror = function() {{
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }};
+            
+            recognition.onend = function() {{
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }};
+            
+            recognition.start();
+        }}
+        </script>
+        """
+        components.html(mic_html, height=50)
     return val
 
 def parse_national_id(nat_id):
@@ -240,7 +290,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بكفاءة تامة، الحسابات التلقائية مفعلة، وحفظ البيانات يتم مباشرة في ملف الإكسيل.")
+    st.write("النظام جاهز بكافة ميزات الإملاء الصوتي المباشر والحسابات والحفظ بالإكسيل.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
