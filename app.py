@@ -42,6 +42,60 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# ==================== حقن سكريبت الإملاء الصوتي المباشر في الصفحة ====================
+st.markdown("""
+<script>
+function startGlobalDictation(inputId) {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
+        return;
+    }
+    let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ar-EG';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    
+    let btn = document.getElementById('btn_' + inputId);
+    if(btn) {
+        btn.style.backgroundColor = '#DC2626';
+        btn.innerText = '🔴';
+    }
+    
+    recognition.onresult = function(event) {
+        let speechResult = event.results[0][0].transcript;
+        const inputs = window.parent.document.querySelectorAll('input');
+        inputs.forEach(inp => {
+            if (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes(inputId)) {
+                let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
+                nativeInputValueSetter.call(inp, speechResult);
+                inp.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+        if(btn) {
+            btn.style.backgroundColor = '#EC4899';
+            btn.innerText = '🎙️';
+        }
+    };
+    
+    recognition.onerror = function() {
+        if(btn) {
+            btn.style.backgroundColor = '#EC4899';
+            btn.innerText = '🎙️';
+        }
+    };
+    
+    recognition.onend = function() {
+        if(btn) {
+            btn.style.backgroundColor = '#EC4899';
+            btn.innerText = '🎙️';
+        }
+    };
+    
+    recognition.start();
+}
+</script>
+""", unsafe_allow_html=True)
+
 # ==================== الثوابت وإعدادات البيانات ====================
 EXCEL_FILE = "template.xlsx"
 
@@ -151,49 +205,7 @@ def voice_input_component(label, key_name):
     with col_mic:
         st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
         mic_html = f"""
-        <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:16px; width:100%;">🎙️</button>
-        <script>
-        function startDictation_{key_name}() {{
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
-                return;
-            }}
-            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'ar-EG';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-            
-            let btn = document.getElementById('mic_{key_name}');
-            btn.style.backgroundColor = '#DC2626';
-            btn.innerText = '🔴';
-            
-            recognition.onresult = function(event) {{
-                let speechResult = event.results[0][0].transcript;
-                const inputs = window.parent.document.querySelectorAll('input');
-                inputs.forEach(inp => {{
-                    if (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes('{label}')) {{
-                        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
-                        nativeInputValueSetter.call(inp, speechResult);
-                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    }}
-                }});
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }};
-            
-            recognition.onerror = function() {{
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }};
-            
-            recognition.onend = function() {{
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }};
-            
-            recognition.start();
-        }}
-        </script>
+        <button id="btn_{key_name}" onclick="startGlobalDictation('{key_name}')" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:16px; width:100%;">🎙️</button>
         """
         components.html(mic_html, height=50)
     return val
@@ -290,7 +302,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز بكافة ميزات الإملاء الصوتي المباشر والحسابات والحفظ بالإكسيل.")
+    st.write("النظام جاهز بكافة ميزات الإملاء الصوتي المباشر الحاصلة على الصلاحيات الكاملة.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
