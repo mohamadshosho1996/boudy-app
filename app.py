@@ -246,22 +246,25 @@ if menu == "الصفحة الرئيسية":
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
-    if "pregnant_old_data" not in st.session_state:
-        st.session_state.pregnant_old_data = {}
-
     nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
     if nat_id and len(nat_id) == 14:
         if st.button("🔍 استرجاع البيانات المسجلة"):
-            st.session_state.pregnant_old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
+            old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
+            _, calc_age = parse_national_id(nat_id)
+            
+            # تحديث الـ session_state للـ inputs مباشرة لتظهر القيم فوراً
+            for col_name in PREGNANT_COLUMNS:
+                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
+                    continue
+                val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
+                if col_name == "العمر الحالى" and not val:
+                    val = calc_age
+                st.session_state[f"p_{col_name}"] = str(val)
+            
+            if old_data:
+                st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية للأم تلقائياً!")
             st.rerun()
-
-    old_data = st.session_state.pregnant_old_data
-    calc_age = ""
-    if nat_id and len(nat_id) == 14 and nat_id.isdigit():
-        _, calc_age = parse_national_id(nat_id)
-        if old_data:
-            st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية للأم تلقائياً!")
 
     form_data = {}
     form_data["الرقم القومى"] = nat_id
@@ -270,17 +273,17 @@ elif menu == "سجل الحوامل":
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
             continue
         
-        default_val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
-        
-        if col_name == "العمر الحالى" and not default_val:
-            default_val = calc_age
+        # تهيئة الـ session_state للقيمة الافتراضية إذا لم تكن موجودة
+        if f"p_{col_name}" not in st.session_state:
+            st.session_state[f"p_{col_name}"] = ""
             
         if col_name in DROPDOWN_OPTIONS:
             options = DROPDOWN_OPTIONS[col_name]
-            idx = options.index(default_val) if default_val in options else 0
+            current_val = st.session_state.get(f"p_{col_name}", options[0])
+            idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
         else:
-            form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"p_{col_name}")
+            form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
         if not nat_id or len(nat_id) != 14:
@@ -307,9 +310,6 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    if "child_old_data" not in st.session_state:
-        st.session_state.child_old_data = {}
-
     nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
     if nat_id_mom and len(nat_id_mom) == 14:
@@ -317,15 +317,21 @@ elif menu == "سجل الأطفال":
             found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
             if not found_data:
                 found_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
-            st.session_state.child_old_data = found_data
+            
+            b_date_mom, _ = parse_national_id(nat_id_mom)
+            
+            # تحديث الـ session_state للـ inputs مباشرة لتظهر القيم فوراً
+            for col_name in CHILD_COLUMNS:
+                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+                    continue
+                val = found_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
+                if col_name == "تاريخ ميلاد الام" and not val:
+                    val = b_date_mom
+                st.session_state[f"c_{col_name}"] = str(val)
+                
+            if found_data:
+                st.success("✨ تم العثور على سجل سابق للأم وتم استرجاع بياناتها الأساسية تلقائياً!")
             st.rerun()
-
-    old_data = st.session_state.child_old_data
-    if nat_id_mom and len(nat_id_mom) == 14 and nat_id_mom.isdigit():
-        if old_data:
-            st.success("✨ تم العثور على سجل سابق للأم وتم استرجاع بياناتها الأساسية تلقائياً!")
-
-    b_date_mom, _ = parse_national_id(nat_id_mom)
 
     form_data = {}
     form_data["الرقم القومى للام"] = nat_id_mom
@@ -333,18 +339,18 @@ elif menu == "سجل الأطفال":
     for col_name in CHILD_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
             continue
-        
-        default_val = old_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
-        
-        if col_name == "تاريخ ميلاد الام" and not default_val:
-            default_val = b_date_mom
+            
+        # تهيئة الـ session_state للقيمة الافتراضية إذا لم تكن موجودة
+        if f"c_{col_name}" not in st.session_state:
+            st.session_state[f"c_{col_name}"] = ""
             
         if col_name in DROPDOWN_OPTIONS:
             options = DROPDOWN_OPTIONS[col_name]
-            idx = options.index(default_val) if default_val in options else 0
+            current_val = st.session_state.get(f"c_{col_name}", options[0])
+            idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
         else:
-            form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"c_{col_name}")
+            form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
     
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
