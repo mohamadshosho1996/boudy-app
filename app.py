@@ -246,23 +246,22 @@ if menu == "الصفحة الرئيسية":
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
-    # حقل الرقم القومي خارج الفورم وتحديث الصفحة تلقائياً بمجرد إدخال البيانات
     nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
-    # زر إضافي لتأكيد البحث واسترجاع البيانات يعمل بكفاءة تامة على الموبايل واللابتوب
     if nat_id and len(nat_id) == 14:
         if st.button("🔍 استرجاع البيانات المسجلة"):
+            st.session_state.pregnant_old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
             st.rerun()
 
-    old_data = {}
+    if "pregnant_old_data" not in st.session_state:
+        st.session_state.pregnant_old_data = {}
+
+    old_data = st.session_state.pregnant_old_data
     calc_age = ""
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
-        old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
         _, calc_age = parse_national_id(nat_id)
         if old_data:
             st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية للأم تلقائياً!")
-        else:
-            st.info("✨ رقم قومي جديد، تم استخراج تاريخ الميلاد والعمر تلقائياً.")
 
     with st.form("pregnant_form"):
         form_data = {}
@@ -310,19 +309,21 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    # حقل الرقم القومي للأم خارج الفورم
     nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
     if nat_id_mom and len(nat_id_mom) == 14:
         if st.button("🔍 استرجاع بيانات الأم"):
+            found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
+            if not found_data:
+                found_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
+            st.session_state.child_old_data = found_data
             st.rerun()
-    
-    old_data = {}
+
+    if "child_old_data" not in st.session_state:
+        st.session_state.child_old_data = {}
+
+    old_data = st.session_state.child_old_data
     if nat_id_mom and len(nat_id_mom) == 14 and nat_id_mom.isdigit():
-        old_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
-        if not old_data:
-            old_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
-            
         if old_data:
             st.success("✨ تم العثور على سجل سابق للأم وتم استرجاع بياناتها الأساسية تلقائياً!")
 
