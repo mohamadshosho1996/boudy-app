@@ -246,15 +246,15 @@ if menu == "الصفحة الرئيسية":
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
+    if "pregnant_old_data" not in st.session_state:
+        st.session_state.pregnant_old_data = {}
+
     nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
     if nat_id and len(nat_id) == 14:
         if st.button("🔍 استرجاع البيانات المسجلة"):
             st.session_state.pregnant_old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
             st.rerun()
-
-    if "pregnant_old_data" not in st.session_state:
-        st.session_state.pregnant_old_data = {}
 
     old_data = st.session_state.pregnant_old_data
     calc_age = ""
@@ -263,52 +263,53 @@ elif menu == "سجل الحوامل":
         if old_data:
             st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية للأم تلقائياً!")
 
-    with st.form("pregnant_form"):
-        form_data = {}
-        form_data["الرقم القومى"] = nat_id
+    form_data = {}
+    form_data["الرقم القومى"] = nat_id
+    
+    for col_name in PREGNANT_COLUMNS:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
+            continue
         
-        for col_name in PREGNANT_COLUMNS:
-            if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
-                continue
-            
-            default_val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
-            
-            if col_name == "العمر الحالى" and not default_val:
-                default_val = calc_age
-                
-            if col_name in DROPDOWN_OPTIONS:
-                options = DROPDOWN_OPTIONS[col_name]
-                idx = options.index(default_val) if default_val in options else 0
-                form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
-            else:
-                form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"p_{col_name}")
+        default_val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
         
-        submitted = st.form_submit_button("💾 حفظ بيانات الحامل")
-        if submitted:
-            if not nat_id or len(nat_id) != 14:
-                st.error("برجاء إدخال رقم قومي صحيح مكون من 14 رقماً!")
+        if col_name == "العمر الحالى" and not default_val:
+            default_val = calc_age
+            
+        if col_name in DROPDOWN_OPTIONS:
+            options = DROPDOWN_OPTIONS[col_name]
+            idx = options.index(default_val) if default_val in options else 0
+            form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
+        else:
+            form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"p_{col_name}")
+    
+    if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
+        if not nat_id or len(nat_id) != 14:
+            st.error("برجاء إدخال رقم قومي صحيح مكون من 14 رقماً!")
+        else:
+            form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            form_data["اسم المستخدم"] = st.session_state.name
+            
+            new_df = pd.DataFrame([form_data], dtype=str)
+            excel = pd.ExcelFile(EXCEL_FILE)
+            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+            
+            if "المشورة الاسرية للحامل" in all_dfs:
+                all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
             else:
-                form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                form_data["اسم المستخدم"] = st.session_state.name
+                all_dfs["المشورة الاسرية للحامل"] = new_df
                 
-                new_df = pd.DataFrame([form_data], dtype=str)
-                excel = pd.ExcelFile(EXCEL_FILE)
-                all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-                
-                if "المشورة الاسرية للحامل" in all_dfs:
-                    all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
-                else:
-                    all_dfs["المشورة الاسرية للحامل"] = new_df
-                    
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    for s, df in all_dfs.items():
-                        df.to_excel(writer, sheet_name=s, index=False)
-                st.success("تم حفظ بيانات الحامل كاملة بنجاح في الإكسيل! ✨")
+            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                for s, df in all_dfs.items():
+                    df.to_excel(writer, sheet_name=s, index=False)
+            st.success("تم حفظ بيانات الحامل كاملة بنجاح في الإكسيل! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
+    if "child_old_data" not in st.session_state:
+        st.session_state.child_old_data = {}
+
     nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
     if nat_id_mom and len(nat_id_mom) == 14:
@@ -319,9 +320,6 @@ elif menu == "سجل الأطفال":
             st.session_state.child_old_data = found_data
             st.rerun()
 
-    if "child_old_data" not in st.session_state:
-        st.session_state.child_old_data = {}
-
     old_data = st.session_state.child_old_data
     if nat_id_mom and len(nat_id_mom) == 14 and nat_id_mom.isdigit():
         if old_data:
@@ -329,47 +327,45 @@ elif menu == "سجل الأطفال":
 
     b_date_mom, _ = parse_national_id(nat_id_mom)
 
-    with st.form("child_form"):
-        form_data = {}
-        form_data["الرقم القومى للام"] = nat_id_mom
+    form_data = {}
+    form_data["الرقم القومى للام"] = nat_id_mom
+    
+    for col_name in CHILD_COLUMNS:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+            continue
         
-        for col_name in CHILD_COLUMNS:
-            if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
-                continue
-            
-            default_val = old_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
-            
-            if col_name == "تاريخ ميلاد الام" and not default_val:
-                default_val = b_date_mom
-                
-            if col_name in DROPDOWN_OPTIONS:
-                options = DROPDOWN_OPTIONS[col_name]
-                idx = options.index(default_val) if default_val in options else 0
-                form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
-            else:
-                form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"c_{col_name}")
+        default_val = old_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
         
-        submitted = st.form_submit_button("💾 حفظ بيانات الطفل")
-        if submitted:
-            if not nat_id_mom or len(nat_id_mom) != 14:
-                st.error("برجاء إدخال الرقم القومي للأم صحيحاً مكوناً من 14 رقماً!")
+        if col_name == "تاريخ ميلاد الام" and not default_val:
+            default_val = b_date_mom
+            
+        if col_name in DROPDOWN_OPTIONS:
+            options = DROPDOWN_OPTIONS[col_name]
+            idx = options.index(default_val) if default_val in options else 0
+            form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
+        else:
+            form_data[col_name] = st.text_input(col_name, value=str(default_val), key=f"c_{col_name}")
+    
+    if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
+        if not nat_id_mom or len(nat_id_mom) != 14:
+            st.error("برجاء إدخال الرقم القومي للأم صحيحاً مكوناً من 14 رقماً!")
+        else:
+            form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            form_data["اسم المستخدم"] = st.session_state.name
+            
+            new_df = pd.DataFrame([form_data], dtype=str)
+            excel = pd.ExcelFile(EXCEL_FILE)
+            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+            
+            if "سجل المشورة للاطفال" in all_dfs:
+                all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
             else:
-                form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                form_data["اسم المستخدم"] = st.session_state.name
+                all_dfs["سجل المشورة للاطفال"] = new_df
                 
-                new_df = pd.DataFrame([form_data], dtype=str)
-                excel = pd.ExcelFile(EXCEL_FILE)
-                all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-                
-                if "سجل المشورة للاطفال" in all_dfs:
-                    all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
-                else:
-                    all_dfs["سجل المشورة للاطفال"] = new_df
-                    
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                    for s, df in all_dfs.items():
-                        df.to_excel(writer, sheet_name=s, index=False)
-                st.success("تم حفظ بيانات الطفل كاملة بنجاح في الإكسيل! ✨")
+            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                for s, df in all_dfs.items():
+                    df.to_excel(writer, sheet_name=s, index=False)
+            st.success("تم حفظ بيانات الطفل كاملة بنجاح في الإكسيل! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
