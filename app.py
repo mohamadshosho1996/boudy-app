@@ -162,7 +162,7 @@ def voice_input_component(label, key_name):
             }}
             let btn = document.getElementById('mic_' + key);
             if (window.isRecording && window.activeKey === key) {{
-                window.recognition.stop();
+                if (window.recognition) {{ window.recognition.stop(); }}
                 window.isRecording = false;
                 btn.style.backgroundColor = '#EC4899';
                 btn.innerText = '🎙️';
@@ -171,34 +171,46 @@ def voice_input_component(label, key_name):
             window.recognition = new SpeechRecognition();
             window.recognition.lang = 'ar-EG';
             window.recognition.continuous = false;
-            window.recognition.interimResults = false;
+            window.recognition.interimResults = true;
+            
             window.recognition.onstart = function() {{
                 window.isRecording = true;
                 window.activeKey = key;
                 btn.style.backgroundColor = '#DC2626';
                 btn.innerText = '⏹️';
             }};
+            
             window.recognition.onresult = function(event) {{
                 const transcript = event.results[0][0].transcript;
                 const inputs = window.parent.document.querySelectorAll('input');
                 inputs.forEach(inp => {{
                     if(inp.value !== undefined && inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes(key)) {{
-                        inp.value = transcript;
+                        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
+                        nativeInputValueSetter.call(inp, transcript);
                         inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
                     }}
                 }});
             }};
+            
             window.recognition.onerror = function() {{
                 window.isRecording = false;
                 btn.style.backgroundColor = '#EC4899';
                 btn.innerText = '🎙️';
             }};
+            
             window.recognition.onend = function() {{
                 window.isRecording = false;
                 btn.style.backgroundColor = '#EC4899';
                 btn.innerText = '🎙️';
             }};
-            window.recognition.start();
+            
+            try {{
+                window.recognition.start();
+            }} catch(e) {{
+                window.isRecording = false;
+                btn.style.backgroundColor = '#EC4899';
+                btn.innerText = '🎙️';
+            }}
         }}
         </script>
         """
@@ -297,7 +309,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً للحسابات الطبية العالمية للنمو ومحيط الرأس، الحفظ التلقائي، والإملاء الصوتي.")
+    st.write("النظام جاهز تماماً للحسابات الطبية الذكية، الحفظ التلقائي، والإملاء الصوتي المفعل.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -305,17 +317,8 @@ elif menu == "سجل الحوامل":
     nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
     if nat_id and len(nat_id) == 14:
-        if st.button("🔍 استرجاع البيانات المسجلة"):
-            old_data = get_existing_data(nat_id, "المشورة الاسرية للحامل", "الرقم القومى")
-            _, calc_age = parse_national_id(nat_id)
-            for col_name in PREGNANT_COLUMNS:
-                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
-                    continue
-                val = old_data.get(col_name, "")
-                if col_name == "العمر الحالى" and not val:
-                    val = calc_age
-                st.session_state[f"p_{col_name}"] = str(val)
-            st.rerun()
+        b_date, c_age = parse_national_id(nat_id)
+        st.session_state["p_العمر الحالى"] = c_age
 
     form_data = {}
     form_data["الرقم القومى"] = nat_id
@@ -358,25 +361,30 @@ elif menu == "سجل الأطفال":
     with col_m2:
         nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
+    # حساب تاريخ ميلاد الأم وعمرها أوتوماتيكياً فور إدخال الرقم القومي
+    mom_birth_date_str = ""
     if nat_id_mom and len(nat_id_mom) == 14:
-        if st.button("🔍 استرجاع كافة بيانات الأب والأم والأسرة"):
+        mom_birth_date_str, _ = parse_national_id(nat_id_mom)
+        st.session_state["c_تاريخ ميلاد الام"] = mom_birth_date_str
+
+    if nat_id_mom and len(nat_id_mom) == 14:
+        if st.button("🔍 استرجاع كافة بيانات الأب والأم والأسرة المسجلة"):
             found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام") or get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
-            b_date_mom, _ = parse_national_id(nat_id_mom)
             for col_name in CHILD_COLUMNS:
                 if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                     continue
                 val = found_data.get(col_name, "")
                 if col_name == "اسم الام" and not val: val = name_mom_input
-                if col_name == "تاريخ ميلاد الام" and not val: val = b_date_mom
+                if col_name == "تاريخ ميلاد الام" and not val: val = mom_birth_date_str
                 st.session_state[f"c_{col_name}"] = str(val)
             st.rerun()
 
     form_data = {}
-    form_data["الرقم القومى للام"]  = nat_id_mom
+    form_data["الرقم القومى للام"] = nat_id_mom
     form_data["اسم الام"] = name_mom_input
 
     for col_name in CHILD_COLUMNS:
-        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "مقاس راس الطفل عند الولادة", "محيط الرأس (سم)", "النمو والتطور الحركي"]:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "تاريخ ميلاد الام", "العمر الحالى للطفل (شهور)", "العمر الرحمى للطفل (أسابيع)", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "مقاس راس الطفل عند الولادة", "محيط الرأس (سم)", "النمو والتطور الحركي"]:
             continue
             
         if f"c_{col_name}" not in st.session_state:
@@ -388,10 +396,30 @@ elif menu == "سجل الأطفال":
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
         else:
-            if col_name == "طول الطفل عند الولادة":
+            if col_name == "تاريخ الميلاد للطفل":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب مقاس رأس الطفل عند الولادة تلقائياً
+                # حساب العمر الحالي للطفل (بالشهور) والعمر الرحمي (بالأسابيع) أوتوماتيكياً
+                calc_child_months = ""
+                calc_gestational_weeks = ""
+                try:
+                    if form_data[col_name]:
+                        b_date_obj = datetime.datetime.strptime(form_data[col_name].strip(), "%Y-%m-%d").date()
+                        today_date = datetime.date.today()
+                        diff_days = (today_date - b_date_obj).days
+                        if diff_days >= 0:
+                            calc_child_months = str(round(diff_days / 30.44, 1))
+                            # العمر الرحمي التقديري (الحمل الطبيعي 40 أسبوعاً ناقص الأسابيع المبكرة أو حسب تاريخ الولادة)
+                            calc_gestational_weeks = str(max(37, round(40 - (diff_days / 7))))
+                except Exception:
+                    pass
+                
+                st.session_state["c_العمر الحالى للطفل (شهور)"] = calc_child_months
+                st.session_state["c_العمر الرحمى للطفل (أسابيع)"] = calc_gestational_weeks
+
+            elif col_name == "طول الطفل عند الولادة":
+                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+                
                 birth_w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                 calc_b_head = ""
                 try:
@@ -405,7 +433,6 @@ elif menu == "سجل الأطفال":
             elif col_name == "الطول (سم)":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط الرأس الحالي تلقائياً بناءً على النسب العالمية WHO (العمر بالشهور، الطول، والوزن)
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
                 curr_w_v = st.session_state.get("c_الوزن (كجم)", "3.0")
                 curr_len_v = form_data[col_name]
@@ -415,8 +442,6 @@ elif menu == "سجل الأطفال":
                         age_m = float(curr_age_v)
                         weight_kg = float(curr_w_v)
                         length_cm = float(curr_len_v)
-                        # معادلة معيارية مبنية على منحنيات منظمة الصحة العالمية (WHO Growth Standards)
-                        # المعدل الطبيعي لنمو محيط الرأس: يبدأ بـ 35 سم عند الولادة، ويزيد حوالي 2 سم شهرياً في أول 3 أشهر، ثم 1 سم شهرياً حتى 6 أشهر، ثم 0.5 سم شهرياً حتى سنة
                         if age_m <= 3:
                             base_head = 35 + (age_m * 1.8)
                         elif age_m <= 12:
@@ -424,7 +449,6 @@ elif menu == "سجل الأطفال":
                         else:
                             base_head = 47 + ((age_m - 12) * 0.25)
                         
-                        # تعديل النسبة استناداً لمعامل الوزن والطول الفعلي للطفل مقارنة بالمعيار العالمي
                         adjustment = (weight_kg * 0.15) + (length_cm * 0.05)
                         calc_c_head = str(round(base_head + adjustment - 2.5, 1))
                 except ValueError:
@@ -456,6 +480,11 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.selectbox("النمو والتطور الحركي [محسوب تلقائياً وقابل للتعديل]", m_options, index=default_m_idx, key="c_auto_motor")
             else:
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+
+    # إضافة الحقول المحسوبة تلقائياً إلى قاموس الحفظ
+    form_data["تاريخ ميلاد الام"] = st.session_state.get("c_تاريخ ميلاد الام", "")
+    form_data["العمر الحالى للطفل (شهور)"] = voice_input_component("العمر الحالى للطفل (شهور) [محسوب تلقائياً]", "c_العمر الحالى للطفل (شهور)")
+    form_data["العمر الرحمى للطفل (أسابيع)"] = voice_input_component("العمر الرحمى للطفل (أسابيع) [محسوب تلقائياً]", "c_العمر الرحمى للطفل (أسابيع)")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
