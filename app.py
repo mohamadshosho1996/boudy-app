@@ -143,7 +143,6 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
-# الحقول الأساسية المراد استدعاؤها فقط
 BASIC_PREGNANT_FIELDS = ["الاسم", "العنوان", "رقم الموبايل", "العمر الحالى"]
 BASIC_CHILD_FIELDS = ["اسم الام", "رقم الموبايل للام", "تاريخ ميلاد الام", "رقم الموبايل للاب", "اسم الاب"]
 
@@ -155,13 +154,7 @@ def parse_national_id(nat_id):
         month = int(nat_id[3:5])
         day = int(nat_id[5:7])
         
-        if century_code == 2:
-            century = 1900
-        elif century_code == 3:
-            century = 2000
-        else:
-            century = 1900
-            
+        century = 2000 if century_code == 3 else 1900
         birth_year = century + year_digits
         try:
             birth_date = datetime.date(birth_year, month, day)
@@ -253,9 +246,14 @@ if menu == "الصفحة الرئيسية":
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
-    # حقل الرقم القومي خارج الفورم مع تفعيل إعادة التحميل الفوري عند اكتمال 14 رقم (موبايل ولابتوب)
-    nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input", on_change=st.rerun)
+    # حقل الرقم القومي خارج الفورم وتحديث الصفحة تلقائياً بمجرد إدخال البيانات
+    nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
+    # زر إضافي لتأكيد البحث واسترجاع البيانات يعمل بكفاءة تامة على الموبايل واللابتوب
+    if nat_id and len(nat_id) == 14:
+        if st.button("🔍 استرجاع البيانات المسجلة"):
+            st.rerun()
+
     old_data = {}
     calc_age = ""
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
@@ -274,7 +272,6 @@ elif menu == "سجل الحوامل":
             if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
                 continue
             
-            # استدعاء البيانات الأساسية فقط إذا كانت متوفرة، والباقي فارغ لزيارة جديدة
             default_val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
             
             if col_name == "العمر الحالى" and not default_val:
@@ -313,8 +310,12 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    # حقل الرقم القومي للأم خارج الفورم مع تفعيل إعادة التحميل الفوري (موبايل ولابتوب)
-    nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input", on_change=st.rerun)
+    # حقل الرقم القومي للأم خارج الفورم
+    nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
+    
+    if nat_id_mom and len(nat_id_mom) == 14:
+        if st.button("🔍 استرجاع بيانات الأم"):
+            st.rerun()
     
     old_data = {}
     if nat_id_mom and len(nat_id_mom) == 14 and nat_id_mom.isdigit():
@@ -335,7 +336,6 @@ elif menu == "سجل الأطفال":
             if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                 continue
             
-            # استدعاء البيانات الأساسية للأم والأب فقط إذا كانت مسجلة مسبقاً
             default_val = old_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
             
             if col_name == "تاريخ ميلاد الام" and not default_val:
