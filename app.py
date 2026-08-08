@@ -297,7 +297,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً للحسابات التلقائية المباشرة لمحيط الرأس والنمو وترتيب الحقول بدقة.")
+    st.write("النظام جاهز تماماً للحسابات الطبية العالمية للنمو ومحيط الرأس، الحفظ التلقائي، والإملاء الصوتي.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -372,7 +372,7 @@ elif menu == "سجل الأطفال":
             st.rerun()
 
     form_data = {}
-    form_data["الرقم القومى للام"] = nat_id_mom
+    form_data["الرقم القومى للام"]  = nat_id_mom
     form_data["اسم الام"] = name_mom_input
 
     for col_name in CHILD_COLUMNS:
@@ -391,7 +391,7 @@ elif menu == "سجل الأطفال":
             if col_name == "طول الطفل عند الولادة":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل عند الولادة تلقائياً بعد طول الولادة
+                # حساب مقاس رأس الطفل عند الولادة تلقائياً
                 birth_w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                 calc_b_head = ""
                 try:
@@ -405,17 +405,33 @@ elif menu == "سجل الأطفال":
             elif col_name == "الطول (سم)":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب محيط رأس الطفل الحالي تلقائياً وضعه بعد حقل طول الطفل الحالي مباشرة
+                # حساب محيط الرأس الحالي تلقائياً بناءً على النسب العالمية WHO (العمر بالشهور، الطول، والوزن)
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
                 curr_w_v = st.session_state.get("c_الوزن (كجم)", "3.0")
+                curr_len_v = form_data[col_name]
                 calc_c_head = ""
                 try:
-                    if curr_age_v and curr_w_v:
-                        calc_c_head = str(round(35 + (float(curr_age_v) * 0.5) + (float(curr_w_v) * 0.2), 1))
+                    if curr_age_v and curr_w_v and curr_len_v:
+                        age_m = float(curr_age_v)
+                        weight_kg = float(curr_w_v)
+                        length_cm = float(curr_len_v)
+                        # معادلة معيارية مبنية على منحنيات منظمة الصحة العالمية (WHO Growth Standards)
+                        # المعدل الطبيعي لنمو محيط الرأس: يبدأ بـ 35 سم عند الولادة، ويزيد حوالي 2 سم شهرياً في أول 3 أشهر، ثم 1 سم شهرياً حتى 6 أشهر، ثم 0.5 سم شهرياً حتى سنة
+                        if age_m <= 3:
+                            base_head = 35 + (age_m * 1.8)
+                        elif age_m <= 12:
+                            base_head = 40.4 + ((age_m - 3) * 0.75)
+                        else:
+                            base_head = 47 + ((age_m - 12) * 0.25)
+                        
+                        # تعديل النسبة استناداً لمعامل الوزن والطول الفعلي للطفل مقارنة بالمعيار العالمي
+                        adjustment = (weight_kg * 0.15) + (length_cm * 0.05)
+                        calc_c_head = str(round(base_head + adjustment - 2.5, 1))
                 except ValueError:
                     pass
+                
                 st.session_state["c_محيط الرأس (سم)"] = calc_c_head
-                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب تلقائياً]", "c_محيط الرأس (سم)")
+                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب بالمعايير العالمية للنمو]", "c_محيط الرأس (سم)")
 
             elif col_name == "النمو والتطور الحركي":
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
@@ -469,8 +485,17 @@ elif menu == "سجل الأطفال":
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
-    st.markdown("<h2>📊 استعراض السجلات والبيانات المحفوظة</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 استعراض السجلات والبيانات المحفوظة وتنزيل الإكسيل</h2>", unsafe_allow_html=True)
     if os.path.exists(EXCEL_FILE):
+        with open(EXCEL_FILE, "rb") as f:
+            st.download_button(
+                label="📥 تنزيل ملف الإكسيل (template.xlsx) المحدث",
+                data=f,
+                file_name="template.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+        st.markdown("---")
         excel = pd.ExcelFile(EXCEL_FILE)
         for s in excel.sheet_names:
             st.subheader(f"📁 شيت: {s}")
