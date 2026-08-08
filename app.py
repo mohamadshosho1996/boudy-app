@@ -2,7 +2,6 @@ import os
 import datetime
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ==================== إعدادات الصفحة والتصميم ====================
 st.set_page_config(
@@ -145,77 +144,27 @@ CHILD_COLUMNS = [
 ]
 
 def voice_input_component(label, key_name):
-    current_val = st.session_state.get(key_name, "")
-    col_input, col_mic = st.columns([5, 1])
+    # استخدام أداة التسجيل الصوتي المدمجة والمضمونة في Streamlit
+    col_input, col_mic = st.columns([4, 2])
     with col_input:
+        current_val = st.session_state.get(key_name, "")
         val = st.text_input(label, value=current_val, key=key_name)
     with col_mic:
-        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-        mic_html = f"""
-        <button id="mic_{key_name}" onclick="toggleSpeech('{key_name}')" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:14px; width:100%;">🎙️</button>
-        <script>
-        function toggleSpeech(key) {{
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {{
-                alert("متصفحك لا يدعم الإملاء الصوتي");
-                return;
-            }}
-            let btn = document.getElementById('mic_' + key);
-            if (window.isRecording && window.activeKey === key) {{
-                if (window.recognition) {{ window.recognition.stop(); }}
-                window.isRecording = false;
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-                return;
-            }}
-            window.recognition = new SpeechRecognition();
-            window.recognition.lang = 'ar-EG';
-            window.recognition.continuous = false;
-            window.recognition.interimResults = true;
-            
-            window.recognition.onstart = function() {{
-                window.isRecording = true;
-                window.activeKey = key;
-                btn.style.backgroundColor = '#DC2626';
-                btn.innerText = '⏹️';
-            }};
-            
-            window.recognition.onresult = function(event) {{
-                const transcript = event.results[0][0].transcript;
-                const inputs = window.parent.document.querySelectorAll('input');
-                inputs.forEach(inp => {{
-                    if(inp.value !== undefined && inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes(key)) {{
-                        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
-                        nativeInputValueSetter.call(inp, transcript);
-                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    }}
-                }});
-            }};
-            
-            window.recognition.onerror = function() {{
-                window.isRecording = false;
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }};
-            
-            window.recognition.onend = function() {{
-                window.isRecording = false;
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }};
-            
-            try {{
-                window.recognition.start();
-            }} catch(e) {{
-                window.isRecording = false;
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
-            }}
-        }}
-        </script>
-        """
-        components.html(mic_html, height=50)
-    return val
+        st.markdown("<div style='margin-top: 26px;'></div>", unsafe_allow_html=True)
+        audio_file = st.audio_input(f"🎙️ تسجيل ({label})", key=f"audio_{key_name}")
+        if audio_file is not None:
+            try:
+                import speech_recognition as sr
+                r = sr.Recognizer()
+                with sr.AudioFile(audio_file) as source:
+                    audio_data = r.record(source)
+                    text = r.recognize_google(audio_data, language="ar-EG")
+                    if text:
+                        st.session_state[key_name] = text
+                        st.rerun()
+            except Exception:
+                st.warning("تعذر التعرف على الصوت بوضوح، يرجى المحاولة مرة أخرى.")
+    return st.session_state.get(key_name, "")
 
 def parse_national_id(nat_id):
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
@@ -309,7 +258,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً للحسابات الطبية الذكية، الحفظ التلقائي، والإملاء الصوتي المفعل.")
+    st.write("النظام جاهز تماماً للحسابات الطبية الذكية، الحفظ التلقائي، والإملاء الصوتي المضمون.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -361,7 +310,6 @@ elif menu == "سجل الأطفال":
     with col_m2:
         nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
-    # حساب تاريخ ميلاد الأم وعمرها أوتوماتيكياً فور إدخال الرقم القومي
     mom_birth_date_str = ""
     if nat_id_mom and len(nat_id_mom) == 14:
         mom_birth_date_str, _ = parse_national_id(nat_id_mom)
@@ -399,7 +347,6 @@ elif menu == "سجل الأطفال":
             if col_name == "تاريخ الميلاد للطفل":
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
                 
-                # حساب العمر الحالي للطفل (بالشهور) والعمر الرحمي (بالأسابيع) أوتوماتيكياً
                 calc_child_months = ""
                 calc_gestational_weeks = ""
                 try:
@@ -409,7 +356,6 @@ elif menu == "سجل الأطفال":
                         diff_days = (today_date - b_date_obj).days
                         if diff_days >= 0:
                             calc_child_months = str(round(diff_days / 30.44, 1))
-                            # العمر الرحمي التقديري (الحمل الطبيعي 40 أسبوعاً ناقص الأسابيع المبكرة أو حسب تاريخ الولادة)
                             calc_gestational_weeks = str(max(37, round(40 - (diff_days / 7))))
                 except Exception:
                     pass
@@ -455,7 +401,7 @@ elif menu == "سجل الأطفال":
                     pass
                 
                 st.session_state["c_محيط الرأس (سم)"] = calc_c_head
-                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب بالمعايير العالمية للنمو]", "c_محيط الرأس (سم)")
+                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب بالمعايير العالمية]", "c_محيط الرأس (سم)")
 
             elif col_name == "النمو والتطور الحركي":
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
@@ -481,7 +427,6 @@ elif menu == "سجل الأطفال":
             else:
                 form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
 
-    # إضافة الحقول المحسوبة تلقائياً إلى قاموس الحفظ
     form_data["تاريخ ميلاد الام"] = st.session_state.get("c_تاريخ ميلاد الام", "")
     form_data["العمر الحالى للطفل (شهور)"] = voice_input_component("العمر الحالى للطفل (شهور) [محسوب تلقائياً]", "c_العمر الحالى للطفل (شهور)")
     form_data["العمر الرحمى للطفل (أسابيع)"] = voice_input_component("العمر الرحمى للطفل (أسابيع) [محسوب تلقائياً]", "c_العمر الرحمى للطفل (أسابيع)")
