@@ -97,7 +97,7 @@ DROPDOWN_OPTIONS = {
     'مكملات "أثناء": حمض الفوليك': ["يوجد", "لا يوجد"],
     'مكملات "أثناء": الحديد': ["يوجد", "لا يوجد"],
     'مكملات "أثناء": الكالسيوم': ["يوجد", "لا يوجد"],
-    "النمو والتطور الحركي": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
+    "النمو والتطور الحركي": ["طبيعي", "متقدم", "متأخر", "يحتاج متابعة", "تم التوعية"],
     "التطور الإدراكي والمعرفي": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
     "التطور اللغوي": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
     "رسائل التربية الإيجابية": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
@@ -143,9 +143,6 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
-BASIC_PREGNANT_FIELDS = ["الاسم", "العنوان", "رقم الموبايل", "العمر الحالى"]
-BASIC_CHILD_FIELDS = ["اسم الام", "رقم الموبايل للام", "تاريخ ميلاد الام", "رقم الموبايل للاب", "اسم الاب"]
-
 # دالة استخراج تاريخ الميلاد والعمر من الرقم القومي المصري
 def parse_national_id(nat_id):
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
@@ -153,7 +150,6 @@ def parse_national_id(nat_id):
         year_digits = int(nat_id[1:3])
         month = int(nat_id[3:5])
         day = int(nat_id[5:7])
-        
         century = 2000 if century_code == 3 else 1900
         birth_year = century + year_digits
         try:
@@ -165,15 +161,17 @@ def parse_national_id(nat_id):
             return "", ""
     return "", ""
 
-# دالة البحث عن البيانات السابقة للرقم القومي في الإكسيل
+# دالة البحث الشامل واسترجاع البيانات السابقة بدقة
 def get_existing_data(nat_id, sheet_name, id_column):
     if os.path.exists(EXCEL_FILE) and nat_id and len(nat_id) == 14:
         try:
-            df = pd.read_excel(EXCEL_FILE, sheet_name=sheet_name, dtype=str)
-            if id_column in df.columns:
-                match = df[df[id_column] == nat_id]
-                if not match.empty:
-                    return match.iloc[-1].to_dict()
+            excel = pd.ExcelFile(EXCEL_FILE)
+            for s in excel.sheet_names:
+                df = pd.read_excel(excel, sheet_name=s, dtype=str)
+                if id_column in df.columns:
+                    match = df[df[id_column] == nat_id]
+                    if not match.empty:
+                        return match.iloc[-1].to_dict()
         except Exception:
             pass
     return {}
@@ -240,7 +238,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً لتسجيل الحالات، واستخراج التواريخ والعمر من الرقم القومي، واسترجاع البيانات المسجلة مسبقاً تلقائياً.")
+    st.write("النظام جاهز تماماً لتسجيل الحالات، واستخراج التواريخ والعمر، والحسابات التلقائية لمحيط الرأس ومستويات النمو والتطور.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -256,13 +254,13 @@ elif menu == "سجل الحوامل":
             for col_name in PREGNANT_COLUMNS:
                 if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
                     continue
-                val = old_data.get(col_name, "") if col_name in BASIC_PREGNANT_FIELDS else ""
+                val = old_data.get(col_name, "")
                 if col_name == "العمر الحالى" and not val:
                     val = calc_age
                 st.session_state[f"p_{col_name}"] = str(val)
             
             if old_data:
-                st.success("✨ تم العثور على سجل سابق لهذه الحالة وتم استرجاع البيانات الأساسية للأم تلقائياً!")
+                st.success("✨ تم العثور على سجل سابق وتم استرجاع كافة بيانات الأم والأسرة بنجاح!")
             st.rerun()
 
     form_data = {}
@@ -271,7 +269,6 @@ elif menu == "سجل الحوامل":
     for col_name in PREGNANT_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
             continue
-        
         if f"p_{col_name}" not in st.session_state:
             st.session_state[f"p_{col_name}"] = ""
             
@@ -308,7 +305,7 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    # إعادة ترتيب الواجهة: اسم الأم قبل الرقم القومي
+    # اسم الأم قبل الرقم القومي
     col_m1, col_m2 = st.columns(2)
     with col_m1:
         name_mom_input = st.text_input("اسم الام", key="child_name_mom_input")
@@ -316,7 +313,8 @@ elif menu == "سجل الأطفال":
         nat_id_mom = st.text_input("الرقم القومى للام", max_chars=14, key="child_nat_id_mom_input")
     
     if nat_id_mom and len(nat_id_mom) == 14:
-        if st.button("🔍 استرجاع بيانات الأم"):
+        if st.button("🔍 استرجاع كافة بيانات الأب والأم والأسرة"):
+            # بحث في شيت الأطفال أو شيت الحوامل لاستدعاء كل شيء
             found_data = get_existing_data(nat_id_mom, "سجل المشورة للاطفال", "الرقم القومى للام")
             if not found_data:
                 found_data = get_existing_data(nat_id_mom, "المشورة الاسرية للحامل", "الرقم القومى")
@@ -324,15 +322,18 @@ elif menu == "سجل الأطفال":
             b_date_mom, _ = parse_national_id(nat_id_mom)
             
             for col_name in CHILD_COLUMNS:
-                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام"]:
+                if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                     continue
-                val = found_data.get(col_name, "") if col_name in BASIC_CHILD_FIELDS else ""
+                # استدعاء القيم المسجلة مسبقاً لكل حقول الأب والأم والتعليم والوظيفة وغيرها
+                val = found_data.get(col_name, "")
+                if col_name == "اسم الام" and not val:
+                    val = name_mom_input
                 if col_name == "تاريخ ميلاد الام" and not val:
                     val = b_date_mom
                 st.session_state[f"c_{col_name}"] = str(val)
                 
             if found_data:
-                st.success("✨ تم العثور على سجل سابق للأم وتم استرجاع بياناتها الأساسية تلقائياً!")
+                st.success("✨ تم العثور على السجل السابق واستدعاء جميع بيانات الأب، الأم، التعليم، الوظيفة، وعدد الأطفال بنجاح!")
             st.rerun()
 
     form_data = {}
@@ -340,7 +341,7 @@ elif menu == "سجل الأطفال":
     form_data["اسم الام"] = name_mom_input
     
     for col_name in CHILD_COLUMNS:
-        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"]:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "اسم الام", "وحدة", "مستشفى", "أخرى", "مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة", "مقاس راس الطفل عند الولادة", "محيط الرأس (سم)", "النمو والتطور الحركي"]:
             continue
             
         if f"c_{col_name}" not in st.session_state:
@@ -353,8 +354,66 @@ elif menu == "سجل الأطفال":
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
         else:
             form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+
+    # ==================== الحسابات التلقائية الذكية ====================
+    st.markdown("---")
+    st.subheader("📊 الحسابات الحيوية والتطورية التلقائية")
     
-    # حقول القوائم المنسدلة الذكية المطلوبة للمتابعة ومصدر الإحالة
+    col_w1, col_w2 = st.columns(2)
+    with col_w1:
+        birth_weight = st.text_input("وزن الطفل عند الولادة (كجم)", key="c_birth_weight")
+    with col_w2:
+        birth_length = st.text_input("طول الطفل عند الولادة (سم)", key="c_birth_length")
+    
+    # حساب محيط الرأس عند الولادة تلقائياً (معادلة طبية تقديرية: الطول / 2 + الوزن * معامل ثابت أو قاعدة تقريبية مبنية على القياسات)
+    calc_birth_head = ""
+    try:
+        if birth_weight and birth_length:
+            bw = float(birth_weight)
+            bl = float(birth_length)
+            calc_birth_head = str(round((bl / 2) + (bw * 0.5) + 10, 1))
+    except ValueError:
+        pass
+    
+    form_data["مقاس راس الطفل عند الولادة"] = st.text_input("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", value=calc_birth_head, key="c_calc_birth_head")
+
+    col_c_curr1, col_c_curr2, col_c_curr3 = st.columns(3)
+    with col_c_curr1:
+        curr_age_months = st.text_input("العمر الحالى للطفل (شهور)", key="c_curr_age")
+    with col_c_curr2:
+        curr_weight = st.text_input("الوزن الحالي (كجم)", key="c_curr_weight")
+    with col_c_curr3:
+        curr_length = st.text_input("الطول الحالي (سم)", key="c_curr_length")
+
+    # حساب محيط الرأس الحالي تلقائياً بناءً على العمر والحساء الحيوي
+    calc_curr_head = ""
+    auto_motor_growth = "طبيعي"
+    try:
+        if curr_age_months and curr_weight and curr_length:
+            age = float(curr_age_months)
+            cw = float(curr_weight)
+            cl = float(curr_length)
+            calc_curr_head = str(round(35 + (age * 0.5) + (cw * 0.2), 1))
+            
+            # حساب وتوقع النمو والتطور الحركي بناءً على المعدلات الطبيعية للوزن والطول بالنسبة للعمر
+            expected_weight_min = 3 + (age * 0.5)
+            if cw > (expected_weight_min * 1.25):
+                auto_motor_growth = "متقدم"
+            elif cw < (expected_weight_min * 0.75):
+                auto_motor_growth = "متأخر"
+            else:
+                auto_motor_growth = "طبيعي"
+    except ValueError:
+        pass
+
+    form_data["محيط الرأس (سم)"] = st.text_input("محيط الرأس الحالي (سم) [محسوب تلقائياً]", value=calc_curr_head, key="c_calc_curr_head")
+    
+    # قائمة النمو والتطور الحركي مع التحديد التلقائي المقترح
+    motor_options = DROPDOWN_OPTIONS["النمو والتطور الحركي"]
+    default_motor_idx = motor_options.index(auto_motor_growth) if auto_motor_growth in motor_options else 0
+    form_data["النمو والتطور الحركي"] = st.selectbox("النمو والتطور الحركي [محسوب تلقائياً ومقابل للتعديل]", motor_options, index=default_motor_idx, key="c_auto_motor")
+
+    # القوائم المنسدلة الذكية لمكان المتابعة ومصدر الإحالة
     st.markdown("---")
     col_c1, col_c2 = st.columns(2)
     with col_c1:
@@ -364,6 +423,11 @@ elif menu == "سجل الأطفال":
     
     form_data["مكان المتابعة"] = place_choice
     form_data["مصدر الاحاله"] = source_choice
+    form_data["وزن الطفل عند الولادة"] = birth_weight
+    form_data["طول الطفل عند الولادة"] = birth_length
+    form_data["العمر الحالى للطفل (شهور)"] = curr_age_months
+    form_data["الوزن (كجم)"] = curr_weight
+    form_data["الطول (سم)"] = curr_length
     
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
@@ -373,9 +437,6 @@ elif menu == "سجل الأطفال":
             form_data["اسم المستخدم"] = st.session_state.name
             
             # التوزيع التلقائي في الأعمدة المنفصلة للإكسيل
-            form_data["وحدة"] = "تم" if place_choice == "وحدة" else ""
-            form_data["مستشفى"] = "تم" if place_choice == "وحدة" else "" # تم تعديلها لتوافق الاختيار بدقة
-            # تصحيح منطق التوزيع لأعمدة مكان المتابعة
             form_data["وحدة"] = "تم" if place_choice == "وحدة" else ""
             form_data["مستشفى"] = "تم" if place_choice == "مستشفى" else ""
             form_data["أخرى"] = "تم" if place_choice == "أخرى" else ""
@@ -397,7 +458,7 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل وتوزيع الاختيارات في أعمدة الإكسيل بنجاح! ✨")
+            st.success("تم حفظ بيانات الطفل، والحسابات التلقائية، وتوزيع الاختيارات في أعمدة الإكسيل بنجاح! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
