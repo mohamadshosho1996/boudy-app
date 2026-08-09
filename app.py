@@ -150,53 +150,80 @@ def voice_input_component(label, key_name):
         val = st.text_input(label, key=key_name)
     with col_mic:
         st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
+        # تم إضافة السماح بالتشغيل داخل الـ iframe مع استخدام كود جافاسكريبت متوافق ومحدث
         mic_html = f"""
-        <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; font-size:16px; width:100%;">🎙️</button>
+        <div style="width: 100%;">
+            <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 0px; cursor:pointer; font-size:16px; width:100%; text-align:center;">🎙️</button>
+        </div>
         <script>
         function startDictation_{key_name}() {{
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
+                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome الحديث.');
                 return;
             }}
-            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition = new SpeechRecognition();
             recognition.lang = 'ar-EG';
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
             
             let btn = document.getElementById('mic_{key_name}');
-            btn.style.backgroundColor = '#DC2626';
-            btn.innerText = '🔴';
+            if(btn) {{
+                btn.style.backgroundColor = '#DC2626';
+                btn.innerText = '🔴';
+            }}
             
             recognition.onresult = function(event) {{
                 let speechResult = event.results[0][0].transcript;
-                const inputs = window.parent.document.querySelectorAll('input');
-                inputs.forEach(inp => {{
-                    if (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes('{label}')) {{
-                        let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
-                        nativeInputValueSetter.call(inp, speechResult);
-                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    }}
-                }});
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
+                
+                // البحث عن حقل الإدخال المرتبط في الصفحة الرئيسية لـ Streamlit
+                try {{
+                    const inputs = window.parent.document.querySelectorAll('input');
+                    inputs.forEach(inp => {{
+                        if (inp.value !== undefined && (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes('{label}'))) {{
+                            let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
+                            nativeInputValueSetter.call(inp, speechResult);
+                            inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        }}
+                    }});
+                }} catch(e) {{
+                    console.log(e);
+                }}
+                
+                if(btn) {{
+                    btn.style.backgroundColor = '#EC4899';
+                    btn.innerText = '🎙️';
+                }}
             }};
             
             recognition.onerror = function(event) {{
-                console.error(event.error);
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
+                console.error("Speech recognition error", event.error);
+                if(btn) {{
+                    btn.style.backgroundColor = '#EC4899';
+                    btn.innerText = '🎙️';
+                }}
             }};
             
             recognition.onend = function() {{
-                btn.style.backgroundColor = '#EC4899';
-                btn.innerText = '🎙️';
+                if(btn) {{
+                    btn.style.backgroundColor = '#EC4899';
+                    btn.innerText = '🎙️';
+                }}
             }};
             
-            recognition.start();
+            try {{
+                recognition.start();
+            }} catch(err) {{
+                console.error(err);
+                if(btn) {{
+                    btn.style.backgroundColor = '#EC4899';
+                    btn.innerText = '🎙️';
+                }}
+            }}
         }}
         </script>
         """
-        # تم تمرير صلاحية الميكروفون صراحة هنا لمنع حظر المتصفح
+        # إضافة خاصية allow="microphone" للـ iframe لمنع المتصفح من حظر الوصول للميكروفون
         components.html(mic_html, height=50, scrolling=False)
     return val
 
