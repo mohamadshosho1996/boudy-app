@@ -612,7 +612,6 @@ elif menu == "استعراض البيانات والداشبورد":
             if df.empty or date_col not in df.columns:
                 return df
             try:
-                # تحويل العمود إلى تاريخ ومقارنته
                 df_filtered = df.copy()
                 df_filtered['temp_date'] = pd.to_datetime(df_filtered[date_col], errors='coerce').dt.date
                 mask = (df_filtered['temp_date'] >= start_date) & (df_filtered['temp_date'] <= end_date)
@@ -620,7 +619,7 @@ elif menu == "استعراض البيانات والداشبورد":
             except Exception:
                 return df
 
-        # تطبيق الفلترة (نعتمد على "تاريخ التسجيل" كمؤيار زمني دقيق)
+        # تطبيق الفلترة
         df_preg_filtered = filter_by_date(df_preg, "تاريخ التسجيل")
         df_child_filtered = filter_by_date(df_child, "تاريخ التسجيل")
         
@@ -641,7 +640,7 @@ elif menu == "استعراض البيانات والداشبورد":
             
         df_stats = pd.DataFrame(stats_data)
         
-        st.subheader(, f"📋 تقرير أداء الحالات للفترة من {start_date} إلى {end_date}")
+        st.subheader(f"📋 تقرير أداء الحالات للفترة من {start_date} إلى {end_date}")
         st.dataframe(df_stats, use_container_width=True)
         
         # عرض الرسم البياني الإضافي
