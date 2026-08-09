@@ -145,20 +145,23 @@ CHILD_COLUMNS = [
 ]
 
 def voice_input_component(label, key_name):
+    # التأكد من وجود المفتاح في الـ session_state
+    if key_name not in st.session_state:
+        st.session_state[key_name] = ""
+        
     col_input, col_mic = st.columns([5, 1])
     with col_input:
-        val = st.text_input(label, key=key_name)
+        val = st.text_input(label, value=st.session_state[key_name], key=key_name)
     with col_mic:
         st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        # تم إضافة السماح بالتشغيل داخل الـ iframe مع استخدام كود جافاسكريبت متوافق ومحدث
         mic_html = f"""
         <div style="width: 100%;">
-            <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل تلقائياً" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 0px; cursor:pointer; font-size:16px; width:100%; text-align:center;">🎙️</button>
+            <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 0px; cursor:pointer; font-size:16px; width:100%; text-align:center;">🎙️</button>
         </div>
         <script>
         function startDictation_{key_name}() {{
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome الحديث.');
+                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
                 return;
             }}
             let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -176,18 +179,14 @@ def voice_input_component(label, key_name):
             recognition.onresult = function(event) {{
                 let speechResult = event.results[0][0].transcript;
                 
-                // البحث عن حقل الإدخال المرتبط في الصفحة الرئيسية لـ Streamlit
-                try {{
-                    const inputs = window.parent.document.querySelectorAll('input');
-                    inputs.forEach(inp => {{
-                        if (inp.value !== undefined && (inp.getAttribute('aria-label') && inp.getAttribute('aria-label').includes('{label}'))) {{
-                            let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
-                            nativeInputValueSetter.call(inp, speechResult);
-                            inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        }}
-                    }});
-                }} catch(e) {{
-                    console.log(e);
+                // تحديث حقل الإدخال الأصلي الخاص بـ Streamlit وإرسال الحدث
+                const inputEl = window.parent.document.querySelector('input[aria-label*="{label}"]') || 
+                                window.parent.document.querySelector('div[data-baseweb="input"] input');
+                
+                if (inputEl) {{
+                    let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
+                    nativeInputValueSetter.call(inputEl, speechResult);
+                    inputEl.dispatchEvent(new Event('input', {{ bubbles: true }}));
                 }}
                 
                 if(btn) {{
@@ -197,7 +196,7 @@ def voice_input_component(label, key_name):
             }};
             
             recognition.onerror = function(event) {{
-                console.error("Speech recognition error", event.error);
+                console.error("خطأ في التعرف الصوتي:", event.error);
                 if(btn) {{
                     btn.style.backgroundColor = '#EC4899';
                     btn.innerText = '🎙️';
@@ -223,9 +222,8 @@ def voice_input_component(label, key_name):
         }}
         </script>
         """
-        # إضافة خاصية allow="microphone" للـ iframe لمنع المتصفح من حظر الوصول للميكروفون
         components.html(mic_html, height=50, scrolling=False)
-    return val
+    return st.session_state.get(key_name, val)
 
 def parse_national_id(nat_id):
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
@@ -319,7 +317,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز بكافة ميزات الإملاء الصوتي المباشر والربط المباشر مع متصفح جوجل كروم.")
+    st.write("النظام جاهز تماماً ومحدث لدعم الإملاء الصوتي بشكل مستقر ودقيق عبر متصفح كروم.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
