@@ -196,7 +196,7 @@ def voice_input_component(label, key_name):
         }}
         </script>
         """
-        # تم إضافة خاصية allow="microphone" لمنح الصلاحية الكاملة للمايكروفون داخل الـ iframe
+        # تم تمرير صلاحية الميكروفون صراحة هنا لمنع حظر المتصفح
         components.html(mic_html, height=50, scrolling=False)
     return val
 
