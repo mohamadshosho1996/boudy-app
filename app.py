@@ -2,7 +2,6 @@ import os
 import datetime
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # ==================== إعدادات الصفحة والتصميم ====================
 st.set_page_config(
@@ -144,87 +143,6 @@ CHILD_COLUMNS = [
     "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات/ توصيات", "تخطيط الزيارة القادمة"
 ]
 
-def voice_input_component(label, key_name):
-    # التأكد من وجود المفتاح في الـ session_state
-    if key_name not in st.session_state:
-        st.session_state[key_name] = ""
-        
-    col_input, col_mic = st.columns([5, 1])
-    with col_input:
-        val = st.text_input(label, value=st.session_state[key_name], key=key_name)
-    with col_mic:
-        st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        mic_html = f"""
-        <div style="width: 100%;">
-            <button id="mic_{key_name}" onclick="startDictation_{key_name}()" title="اضغط وتحدث لتعبئة الحقل" style="background-color:#EC4899; color:white; border:none; border-radius:6px; padding:8px 0px; cursor:pointer; font-size:16px; width:100%; text-align:center;">🎙️</button>
-        </div>
-        <script>
-        function startDictation_{key_name}() {{
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
-                alert('متصفحك لا يدعم الإملاء الصوتي، يرجى استخدام Google Chrome.');
-                return;
-            }}
-            let SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            let recognition = new SpeechRecognition();
-            recognition.lang = 'ar-EG';
-            recognition.interimResults = false;
-            recognition.maxAlternatives = 1;
-            
-            let btn = document.getElementById('mic_{key_name}');
-            if(btn) {{
-                btn.style.backgroundColor = '#DC2626';
-                btn.innerText = '🔴';
-            }}
-            
-            recognition.onresult = function(event) {{
-                let speechResult = event.results[0][0].transcript;
-                
-                // تحديث حقل الإدخال الأصلي الخاص بـ Streamlit وإرسال الحدث
-                const inputEl = window.parent.document.querySelector('input[aria-label*="{label}"]') || 
-                                window.parent.document.querySelector('div[data-baseweb="input"] input');
-                
-                if (inputEl) {{
-                    let nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, "value").set;
-                    nativeInputValueSetter.call(inputEl, speechResult);
-                    inputEl.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                }}
-                
-                if(btn) {{
-                    btn.style.backgroundColor = '#EC4899';
-                    btn.innerText = '🎙️';
-                }}
-            }};
-            
-            recognition.onerror = function(event) {{
-                console.error("خطأ في التعرف الصوتي:", event.error);
-                if(btn) {{
-                    btn.style.backgroundColor = '#EC4899';
-                    btn.innerText = '🎙️';
-                }}
-            }};
-            
-            recognition.onend = function() {{
-                if(btn) {{
-                    btn.style.backgroundColor = '#EC4899';
-                    btn.innerText = '🎙️';
-                }}
-            }};
-            
-            try {{
-                recognition.start();
-            }} catch(err) {{
-                console.error(err);
-                if(btn) {{
-                    btn.style.backgroundColor = '#EC4899';
-                    btn.innerText = '🎙️';
-                }}
-            }}
-        }}
-        </script>
-        """
-        components.html(mic_html, height=50, scrolling=False)
-    return st.session_state.get(key_name, val)
-
 def parse_national_id(nat_id):
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
         century_code = int(nat_id[0])
@@ -317,7 +235,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً ومحدث لدعم الإملاء الصوتي بشكل مستقر ودقيق عبر متصفح كروم.")
+    st.write("النظام مستقر وسريع جداً. يمكنكِ الكتابة في الحقول أو استخدام زر الميكروفون الموجود في لوحة المفاتيح لديكِ مباشرة.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -342,7 +260,7 @@ elif menu == "سجل الحوامل":
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
         else:
-            form_data[col_name] = voice_input_component(col_name, f"p_{col_name}")
+            form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
         if not nat_id or len(nat_id) != 14:
@@ -404,7 +322,7 @@ elif menu == "سجل الأطفال":
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
         else:
             if col_name == "تاريخ الميلاد للطفل":
-                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
                 
                 calc_child_months = ""
                 calc_gestational_weeks = ""
@@ -423,7 +341,7 @@ elif menu == "سجل الأطفال":
                 st.session_state["c_العمر الرحمى للطفل (أسابيع)"] = calc_gestational_weeks
 
             elif col_name == "طول الطفل عند الولادة":
-                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
                 
                 birth_w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                 calc_b_head = ""
@@ -433,10 +351,10 @@ elif menu == "سجل الأطفال":
                 except ValueError:
                     pass
                 st.session_state["c_مقاس راس الطفل عند الولادة"] = calc_b_head
-                form_data["مقاس راس الطفل عند الولادة"] = voice_input_component("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", "c_مقاس راس الطفل عند الولادة")
+                form_data["مقاس راس الطفل عند الولادة"] = st.text_input("مقاس راس الطفل عند الولادة (سم) [محسوب تلقائياً]", key="c_مقاس راس الطفل عند الولادة")
 
             elif col_name == "الطول (سم)":
-                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
                 
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
                 curr_w_v = st.session_state.get("c_الوزن (كجم)", "3.0")
@@ -460,7 +378,7 @@ elif menu == "سجل الأطفال":
                     pass
                 
                 st.session_state["c_محيط الرأس (سم)"] = calc_c_head
-                form_data["محيط الرأس (سم)"] = voice_input_component("محيط الرأس الحالي (سم) [محسوب بالمعايير العالمية]", "c_محيط الرأس (سم)")
+                form_data["محيط الرأس (سم)"] = st.text_input("محيط الرأس الحالي (سم) [محسوب بالمعايير العالمية]", key="c_محيط الرأس (سم)")
 
             elif col_name == "النمو والتطور الحركي":
                 curr_age_v = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
@@ -484,11 +402,11 @@ elif menu == "سجل الأطفال":
                 default_m_idx = m_options.index(auto_motor) if auto_motor in m_options else 0
                 form_data[col_name] = st.selectbox("النمو والتطور الحركي [محسوب تلقائياً وقابل للتعديل]", m_options, index=default_m_idx, key="c_auto_motor")
             else:
-                form_data[col_name] = voice_input_component(col_name, f"c_{col_name}")
+                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
 
     form_data["تاريخ ميلاد الام"] = st.session_state.get("c_تاريخ ميلاد الام", "")
-    form_data["العمر الحالى للطفل (شهور)"] = voice_input_component("العمر الحالى للطفل (شهور) [محسوب تلقائياً]", "c_العمر الحالى للطفل (شهور)")
-    form_data["العمر الرحمى للطفل (أسابيع)"] = voice_input_component("العمر الرحمى للطفل (أسابيع) [محسوب تلقائياً]", "c_العمر الرحمى للطفل (أسابيع)")
+    form_data["العمر الحالى للطفل (شهور)"] = st.text_input("العمر الحالى للطفل (شهور) [محسوب تلقائياً]", key="c_العمر الحالى للطفل (شهور)")
+    form_data["العمر الرحمى للطفل (أسابيع)"] = st.text_input("العمر الرحمى للطفل (أسابيع) [محسوب تلقائياً]", key="c_العمر الرحمى للطفل (أسابيع)")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
         if not nat_id_mom or len(nat_id_mom) != 14:
