@@ -39,6 +39,23 @@ st.markdown("""
     }
     footer {visibility: hidden;}
     </style>
+    
+    <script>
+    // تفعيل الانتقال التلقائي عند الضغط على Enter بين الحقول
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll("input");
+        inputs.forEach((input, index) => {
+            input.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (inputs[index + 1]) {
+                        inputs[index + 1].focus();
+                    }
+                }
+            });
+        });
+    });
+    </script>
 """, unsafe_allow_html=True)
 
 # ==================== الثوابت وإعدادات البيانات ====================
@@ -139,7 +156,6 @@ DROPDOWN_OPTIONS = {
     "كفاية اللبن وكمية البراز": ["تم", "لم يتم"]
 }
 
-# شيت الحوامل بالترتيب المطلوب
 PREGNANT_COLUMNS = [
     "تاريخ التسجيل", "اسم المستخدم", "الاسم", "العنوان", "الرقم القومى", "رقم الموبايل", "العمر الحالى", "العمر عند الزواج",
     "السن عند الحمل الاول", "مستوى التعليم", "الوظيفة", "تاريخ اخر دورة شهرية", "قرابة بين الزوجين", "عدد مرات الحمل",
@@ -263,7 +279,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("تم ضبط تاريخ الزيارة ليتملئ أوتوماتيكياً بتسجيل اليوم، وحساب العمر الحالي أوتوماتيكياً من الرقم القومي.")
+    st.write("النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال مع الحسابات التلقائية والتنقل الذكي.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -350,7 +366,7 @@ elif menu == "سجل الحوامل":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الحامل بنجاح مع استيفاء الحقول التلقائية! ✨")
+            st.success("تم حفظ بيانات الحامل بنجاح! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
@@ -571,12 +587,48 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل بنجاح في الإكسيل! ✨")
+            st.success("تم حفظ بيانات الطفل بنجاح! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
-    st.markdown("<h2>📊 استعراض السجلات والبيانات المحفوظة وتنزيل الإكسيل</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 لوحة المؤشرات (الداشبورد) وحصر الحالات لكل طبيبة</h2>", unsafe_allow_html=True)
+    
     if os.path.exists(EXCEL_FILE):
+        excel = pd.ExcelFile(EXCEL_FILE)
+        
+        # قراءة البيانات للحوامل والأطفال
+        df_preg = pd.read_excel(excel, sheet_name="المشورة الاسرية للحامل", dtype=str) if "المشورة الاسرية للحامل" in excel.sheet_names else pd.DataFrame(columns=PREGNANT_COLUMNS)
+        df_child = pd.read_excel(excel, sheet_name="سجل المشورة للاطفال", dtype=str) if "سجل المشورة للاطفال" in excel.sheet_names else pd.DataFrame(columns=CHILD_COLUMNS)
+        
+        # تجميع أعداد الحالات لكل مستخدم
+        users_list = [v['name'] for v in DEFAULT_USERS.values()]
+        stats_data = []
+        
+        for u_name in users_list:
+            p_count = len(df_preg[df_preg["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_preg.columns else 0
+            c_count = len(df_child[df_child["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_child.columns else 0
+            total_count = p_count + c_count
+            stats_data.append({
+                "اسم الطبيبة / المستخدم": u_name,
+                "حالات الحوامل": p_count,
+                "حالات الأطفال": c_count,
+                "إجمالي الحالات": total_count
+            })
+            
+        df_stats = pd.DataFrame(stats_data)
+        
+        st.subheader("📋 تقرير إحصائي مفصل بعدد الحالات لكل مستخدم")
+        st.dataframe(df_stats, use_container_width=True)
+        
+        # عرض الرسم البياني الإضافي
+        st.subheader("📈 الرسم البياني لتوزيع الحالات")
+        if not df_stats.empty and df_stats["إجمالي الحالات"].sum() > 0:
+            chart_data = df_stats.set_index("اسم الطبيبة / المستخدم")[["حالات الحوامل", "حالات الأطفال"]]
+            st.bar_chart(chart_data)
+        else:
+            st.info("لا توجد بيانات كافية لعرض الرسم البياني حتى الآن.")
+            
+        st.markdown("---")
         with open(EXCEL_FILE, "rb") as f:
             st.download_button(
                 label="📥 تنزيل ملف الإكسيل المحدث",
@@ -585,10 +637,10 @@ elif menu == "استعراض البيانات والداشبورد":
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
+            
         st.markdown("---")
-        excel = pd.ExcelFile(EXCEL_FILE)
         for s in excel.sheet_names:
-            st.subheader(f"📁 شيت: {s}")
+            st.subheader(f"📁 تفاصيل شيت: {s}")
             df = pd.read_excel(excel, sheet_name=s, dtype=str)
             st.dataframe(df, use_container_width=True)
     else:
