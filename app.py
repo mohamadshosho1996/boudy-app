@@ -59,10 +59,40 @@ VISIT_SCHEDULE_OPTIONS = [
 ]
 
 DROPDOWN_OPTIONS = {
+    "مستوى التعليم": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
+    "الوظيفة": ["يعمل", "لا تعمل"],
+    "نوع الولادة": ["طبيعى", "قيصرى"],
+    "قرابة بين الزوجين": ["نعم", "لا"],
+    "وسيلة تنظيم الأسرة المستخدمة سابقا": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب"],
+    "شهر الحمل": ["الشهر الاول", "الشهر الثانى", "الشهر الثالث", "الشهر الرابع", "الشهر الخامس", "الشهر السادس", "الشهر السابع", "الشهر الثامن", "الشهر التاسع"],
+    "التغذية السليمة": ["تم", "لم يتم"],
+    "المكملات الغذائية": ["تم", "لم يتم"],
+    "التمرينات الرياضية": ["تم", "لم يتم"],
+    "قسط من النوم والراحة": ["تم", "لم يتم"],
+    "المتابعة الدورية للحمل": ["تم", "لم يتم"],
+    "التحذير من تناول الأدوية بدون إستشارة طبيب والتعرض للتدخين والأبخرة": ["تم", "لم يتم"],
+    "المتاعب البسيطة في الشهور الأولى": ["تم", "لم يتم"],
+    "المتاعب في الشهور الأخيرة": ["تم", "لم يتم"],
+    "علامات الخطر أثناء الحمل": ["تم", "لم يتم"],
+    "مشاكل الولادة المبكرة وكيفية تجنبها": ["تم", "لم يتم"],
+    "حركة الجنين / معرفة جنس الجنين/ تمييز الأصوات من قبل الجنين": ["تم", "لم يتم"],
+    "تغير لون الجلد حول الحلمة وظهور بعض إفرازات من الثدي": ["تم", "لم يتم"],
+    "إرتداء الملابس الفضفاضة المريحة": ["تم", "لم يتم"],
+    "الإستعداد للولادة / تحضير ملابس المولود ، الخ": ["تم", "لم يتم"],
+    "علامات الولادة": ["تم", "لم يتم"],
+    "مميزات الولادة الطبيعية": ["تم", "لم يتم"],
+    "الساعة الذهبية الأولى": ["تم", "لم يتم"],
+    "ملامسة الجلد للجلد": ["تم", "لم يتم"],
+    "البداية المبكرة للرضاعة الطبيعية": ["تم", "لم يتم"],
+    "الرضاعة الطبيعية المطلقة": ["تم", "لم يتم"],
+    "أهمية المباعدة": ["تم", "لم يتم"],
+    "وسائل تنظيم الأسرة": ["تم", "لم يتم"],
+    "إستخدام وسيلة بعد الولادة مباشرة": ["تم", "لم يتم"],
+    "التطور العصبي والنفسي للطفل": ["تم", "لم يتم"],
+    "المتابعة ما بعد الولادة": ["تم", "لم يتم"],
     "مستوى التعليم للام": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "مستوى التعليم للاب": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "وظيفة الام": ["يعمل", "لا تعمل"],
-    "نوع الولادة": ["طبيعى", "قيصرى"],
     "مكان الولادة": ["المستشفى", "المنزل"],
     "سبب دخول الحضانة": [
         "انخفاض وزن الطفل.", "احتياج الطفل لأدوية محددة بهذا الوقت.", "صعوبة شديدة في التنفس لعدم اكتمال نمو الرئتين.",
@@ -97,25 +127,26 @@ DROPDOWN_OPTIONS = {
     "التغذيه الصحيحة للام": ["تم", "لم يتم"],
     "كيفية التعرف على علامات الخطر": ["تم", "لم يتم"],
     "فوائد الرضاعه الطبيعية": ["تم", "لم يتم"],
-    "كفاية اللبن وكمية البراز": ["تم", "لم يتم"]
+    "كفاية اللبن وكمية البراز": ["تم", "لم يتم"],
+    "أمراض مزمنة": ["تم", "لم يتم"],
+    "مكملات": ["تم", "لم يتم"]
 }
 
+# شيت الحوامل بالترتيب الجديد والمحدد بدقة بناءً على طلبك
 PREGNANT_COLUMNS = [
-    "تاريخ التسجيل", "اسم المستخدم", "الاسم", "العنوان", "الرقم القومى", "رقم الموبايل", "العمر الحالى", "السن عند الزواج", "السن عند الحمل الاول",
-    "مستوى التعليم", "الوظيفة", "تاريخ اخر دورة شهرية", "قرابة بين الزوجين", "عدد مرات الحمل", "عدد مرات الاجهاض",
-    "عدد الاطفال", "المدة بين اخر حملين", "نوع الولادة", "أمراض مزمنة: إرتفاع ضغط الدم", "أمراض مزمنة: السكر",
-    "أمراض مزمنة: إضطرابات الغدة", "أمراض مزمنة: الأنيميا", "أمراض مزمنة: اخرى", 'مكملات "قبل": حمض الفوليك',
-    'مكملات "قبل": الحديد', 'مكملات "قبل": الكالسيوم', 'مكملات "أثناء": حمض الفوليك', 'مكملات "أثناء": الحديد',
-    'مكملات "أثناء": الكالسيوم', "وسيلة تنظيم الأسرة المستخدمة سابقا", "مدة إستخدام الوسيلة السابقة", "شهر الحمل",
-    "التاريخ الزيارة", "التغذية السليمة", "المكملات الغذائية", "التمرينات الرياضية", "قسط من النوم والراحة",
-    "المتابعة الدورية للحمل", "التحذير من تناول الأدوية بدون إستشارة طبيب والتعرض للتدخين والأبخرة",
-    "المتاعب البسيطة في الشهور الأولى", "المتاعب في الشهور الأخيرة", "علامات الخطر أثناء الحمل",
-    "مشاكل الولادة المبكرة وكيفية تجنبها", "حركة الجنين / معرفة جنس الجنين/ تمييز الأصوات من قبل الجنين",
-    "تغير لون الجلد حول الحلمة وظهور بعض إفرازات من الثدي", "إرتداء الملابس الفضفاضة المريحة",
-    "الإستعداد للولادة / تحضير ملابس المولود ، الخ", "علامات الولادة", "مميزات الولادة الطبيعية",
-    "الساعة الذهبية الأولى", "ملامسة الجلد للجلد", "البداية المبكرة للرضاعة الطبيعية", "الرضاعة الطبيعية المطلقة",
-    "أهمية المباعدة", "وسائل تنظيم الأسرة", "إستخدام وسيلة بعد الولادة مباشرة", "التطور العصبي والنفسي للطفل",
-    "ملاحظات/ توصيات", "تخطيط الزيارة القادمة", "المتابعة ما بعد الولادة"
+    "تاريخ التسجيل", "اسم المستخدم", "الاسم", "العنوان", "الرقم القومى", "رقم الموبايل", "العمر الحالى", "العمر عند الزواج",
+    "السن عند الحمل الاول", "مستوى التعليم", "الوظيفة", "تاريخ اخر دورة شهرية", "قرابة بين الزوجين", "عدد مرات الحمل",
+    "عدد مرات الاجهاض", "عدد الاطفال", "المدة بين اخر حملين", "نوع الولادة", "ارتفاع ضغط الدم", "السكر",
+    "اضرابات الغدة", "الانيميا", "اخرى", "حمض الفوليك قبل الحمل", "الحديد قبل الحمل", "الكالسيوم قبل الحمل",
+    "حمض الفوليك اثناء الحمل", "الحديد اثناء الحمل", "الكالسيوم اثناء الحمل", "وسيلة تنظيم الاسرة المستخدمة سابقا",
+    "مدة استخدام الوسيلة السابقة", "شهر الحمل", "تاريخ الزيارة", "التغذية السليمة", "المكملات الغذائية",
+    "التمرينات الرياضية", "قسط من النوم والراحة", "المتابعة الدورية للحمل", "التحذير من تناول الادوية",
+    "المتاعب البسيطة فى الشهور الاولى", "المتاعب فى الشهور الاخيرة", "علامات الخطر اثناء الحمل",
+    "مشاكل الولادة المبكرة", "حركة الجنين ومعرفة الجنس", "تغير لون الجلد حول الحلمة", "ارتداء الملابس الفضفاضة",
+    "الاستعداد للولاده", "علامات الولاده", "مميزات الولادة الطبيعية", "الساعة الذهبية الاولى", "ملامسة الجلد للجلد",
+    "البداية المبكرة للرضاعه الطبيعية", "الرضاعة الطبيعية المطلقة", "اهمية المباعدة", "وسائل تنظيم الاسره",
+    "استخدام وسيلة بعد الولادة مباشرة", "التطور العصبى والنفسى للطفل", "ملاحظات وتوصيات", "تخطيط الزيارة القادمة",
+    "المتابعة بعد الولادة"
 ]
 
 CHILD_COLUMNS = [
@@ -145,10 +176,10 @@ def parse_national_id(nat_id):
             birth_date = datetime.date(birth_year, month, day)
             today = datetime.date.today()
             age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-            return str(birth_date), str(age)
+            return str(age)
         except ValueError:
-            return "", ""
-    return "", ""
+            return ""
+    return ""
 
 def get_existing_data(nat_id, sheet_name, id_column):
     if os.path.exists(EXCEL_FILE) and nat_id and len(nat_id) == 14:
@@ -225,24 +256,24 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام مرتب وجاهز تماماً وفقاً لتنسيق الحقول المعتمد والآلي الجديد.")
+    st.write("تم تحديث ترتيب الحقول في شيت الحوامل تماماً كما طلبتِ وبات النظام جاهزاً.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
-    nat_id = st.text_input("الرقم القومى", max_chars=14, key="pregnant_nat_id_input")
     
-    if nat_id and len(nat_id) == 14:
-        b_date, c_age = parse_national_id(nat_id)
-        st.session_state["p_العمر الحالى"] = c_age
+    for col in PREGNANT_COLUMNS:
+        if f"p_{col}" not in st.session_state:
+            if col == "تاريخ الزيارة":
+                st.session_state[f"p_{col}"] = datetime.date.today().strftime("%Y-%m-%d")
+            else:
+                st.session_state[f"p_{col}"] = ""
 
     form_data = {}
-    form_data["الرقم القومى"] = nat_id
+    
     for col_name in PREGNANT_COLUMNS:
-        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى"]:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
             continue
-        if f"p_{col_name}" not in st.session_state:
-            st.session_state[f"p_{col_name}"] = ""
             
         if col_name in DROPDOWN_OPTIONS:
             options = DROPDOWN_OPTIONS[col_name]
@@ -250,14 +281,29 @@ elif menu == "سجل الحوامل":
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
         else:
-            form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+            if col_name == "الرقم القومى":
+                form_data[col_name] = st.text_input(col_name, max_chars=14, key=f"p_{col_name}")
+                if form_data[col_name] and len(form_data[col_name]) == 14:
+                    calc_age = parse_national_id(form_data[col_name])
+                    if calc_age:
+                        st.session_state["p_العمر الحالى"] = calc_age
+            elif col_name == "العمر الحالى":
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"p_{col_name}")
+            elif col_name == "تاريخ الزيارة":
+                if not st.session_state.get(f"p_{col_name}"):
+                    st.session_state[f"p_{col_name}"] = datetime.date.today().strftime("%Y-%m-%d")
+                form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"p_{col_name}")
+            else:
+                form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
-        if not nat_id or len(nat_id) != 14:
+        nat_id_val = form_data.get("الرقم القومى", "")
+        if not nat_id_val or len(nat_id_val) != 14:
             st.error("برجاء إدخال رقم قومي صحيح مكون من 14 رقماً!")
         else:
             form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             form_data["اسم المستخدم"] = st.session_state.name
+            
             new_df = pd.DataFrame([form_data], dtype=str)
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
@@ -265,13 +311,12 @@ elif menu == "سجل الحوامل":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الحامل بنجاح! ✨")
+            st.success("تم حفظ بيانات الحامل بالترتيب الجديد بنجاح! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    # تهيئة مفاتيح الجلسة للحقول بالترتيب المطلوب
     for col in CHILD_COLUMNS:
         if f"c_{col}" not in st.session_state:
             if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
@@ -279,17 +324,13 @@ elif menu == "سجل الأطفال":
             else:
                 st.session_state[f"c_{col}"] = ""
 
-    # استرجاع البيانات الذكي عبر الرقم القومي للأم
     nat_id_mom_input = st.text_input("الرقم القومى للام", max_chars=14, key="c_الرقم القومى للام")
     
     if nat_id_mom_input and len(nat_id_mom_input) == 14:
-        mom_b_date, _ = parse_national_id(nat_id_mom_input)
-        st.session_state["c_تاريخ ميلاد الام"] = mom_b_date
-        
         if st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
             found_data = get_existing_data(nat_id_mom_input, "سجل المشورة للاطفال", "الرقم القومى للام") or get_existing_data(nat_id_mom_input, "المشورة الاسرية للحامل", "الرقم القومى")
             for c_name in CHILD_COLUMNS:
-                if c_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "تاريخ ميلاد الام"]:
+                if c_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
                     continue
                 val = found_data.get(c_name, "")
                 if val:
@@ -298,7 +339,6 @@ elif menu == "سجل الأطفال":
 
     form_data = {}
     
-    # بناء الحقول بالترتيب الدقيق المطلوب
     for col_name in CHILD_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
             continue
@@ -310,13 +350,11 @@ elif menu == "سجل الأطفال":
         if col_name in DROPDOWN_OPTIONS:
             options = DROPDOWN_OPTIONS[col_name]
             
-            # التعبئة التلقائية الذكية لـ "موعد الزيارة" بناءً على عمر الطفل الحالي
             if col_name == "موعد الزيارة":
                 auto_visit_choice = VISIT_SCHEDULE_OPTIONS[0]
                 try:
                     age_str = st.session_state.get("c_العمر الحالى للطفل", "")
                     if age_str:
-                        # استخراج رقم الشهور الرقمي
                         age_num = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_str)) or 0)
                         if age_num < 0.25:
                             auto_visit_choice = "الاسبوع الاول"
@@ -353,7 +391,6 @@ elif menu == "سجل الأطفال":
                 except Exception:
                     pass
                 
-                # إذا لم يتم اختياره مسبقاً أو رغبت في تحديثه تلقائياً
                 if not st.session_state.get(f"c_{col_name}"):
                     st.session_state[f"c_{col_name}"] = auto_visit_choice
 
@@ -363,11 +400,10 @@ elif menu == "سجل الأطفال":
             
         else:
             if col_name == "تاريخ ميلاد الام":
-                form_data[col_name] = st.text_input(f"{col_name} [مستخرج أواماً من الرقم القومي]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
-                # حساب العمر الحالي والعمر الرحمي تلقائياً
                 try:
                     if form_data[col_name]:
                         b_date_obj = datetime.datetime.strptime(form_data[col_name].strip(), "%Y-%m-%d").date()
@@ -390,7 +426,6 @@ elif menu == "سجل الأطفال":
                 
             elif col_name == "طول الطفل عند الولادة":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
-                # حساب مقاس رأس الطفل عند الولادة تلقائياً
                 try:
                     w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
                     if w_val and form_data[col_name]:
@@ -407,16 +442,14 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"c_{col_name}")
 
             elif col_name == "تخطيط الزيارة القادمة":
-                # حساب تاريخ الزيارة القادمة تلقائياً بناءً على موعد الزيارة التالي في القائمة
                 calc_next_visit_date = ""
                 try:
-                    current_visit_sel = st.session_state.get("c_ موعد الزيارة" if "c_ موعد الزيارة" in st.session_state else "c_موعد الزيارة", VISIT_SCHEDULE_OPTIONS[0])
+                    current_visit_sel = st.session_state.get("c_موعد الزيارة", VISIT_SCHEDULE_OPTIONS[0])
                     if current_visit_sel in VISIT_SCHEDULE_OPTIONS:
                         curr_idx = VISIT_SCHEDULE_OPTIONS.index(current_visit_sel)
                         next_idx = min(curr_idx + 1, len(VISIT_SCHEDULE_OPTIONS) - 1)
                         next_visit_label = VISIT_SCHEDULE_OPTIONS[next_idx]
                         
-                        # ربط الأيام أو الشهور المقابلة لكل مرحلة عمرية تقريبية لحساب التاريخ القادم بدقة
                         schedule_days_map = {
                             "الاسبوع الاول": 7, "عمر شهرين": 60, "عمر 4 شهور": 120, "عمر 6 شهور": 180,
                             "عمر 9 شهور": 270, "عمر 12 شهر": 365, "عمر 18 شهر": 545, "عمر سنتين": 730,
@@ -430,7 +463,6 @@ elif menu == "سجل الأطفال":
                             target_days = schedule_days_map.get(next_visit_label, 30)
                             calc_next_visit_date = str(b_date_obj + datetime.timedelta(days=target_days))
                         else:
-                            # لو تاريخ الميلاد مش مضاف، نحسبه بالنسبة لتاريخ اليوم
                             curr_v_date = datetime.datetime.strptime(st.session_state.get("c_تاريخ الزيارة", datetime.date.today().strftime("%Y-%m-%d")), "%Y-%m-%d").date()
                             calc_next_visit_date = str(curr_v_date + datetime.timedelta(days=30))
                 except Exception:
@@ -443,7 +475,6 @@ elif menu == "سجل الأطفال":
 
             elif col_name == "الطول الحالى":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
-                # حساب محيط الرأس الحالي تلقائياً
                 try:
                     age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
                     w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
@@ -465,7 +496,6 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.text_input(f"{col_name} [محسوب بالمعايير العالمية]", key=f"c_{col_name}")
 
             elif col_name == "النمو والتطور الحركى":
-                # حساب النمو الحركي تلقائياً
                 auto_m = "طبيعي"
                 try:
                     age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
@@ -502,7 +532,7 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل والتواريخ التلقائية بنجاح في الإكسيل! ✨")
+            st.success("تم حفظ بيانات الطفل بنجاح في الإكسيل! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
