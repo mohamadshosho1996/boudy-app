@@ -63,33 +63,42 @@ DROPDOWN_OPTIONS = {
     "الوظيفة": ["يعمل", "لا تعمل"],
     "نوع الولادة": ["طبيعى", "قيصرى"],
     "قرابة بين الزوجين": ["نعم", "لا"],
-    "وسيلة تنظيم الأسرة المستخدمة سابقا": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب"],
+    "وسيلة تنظيم الاسرة المستخدمة سابقا": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب"],
     "شهر الحمل": ["الشهر الاول", "الشهر الثانى", "الشهر الثالث", "الشهر الرابع", "الشهر الخامس", "الشهر السادس", "الشهر السابع", "الشهر الثامن", "الشهر التاسع"],
+    "ارتفاع ضغط الدم": ["تم", "لم يتم"],
+    "السكر": ["تم", "لم يتم"],
+    "اضرابات الغدة": ["تم", "لم يتم"],
+    "الانيميا": ["تم", "لم يتم"],
+    "حمض الفوليك قبل الحمل": ["لا يوجد", "تم", "لم يتم"],
+    "الحديد قبل الحمل": ["لا يوجد", "تم", "لم يتم"],
+    "الكالسيوم قبل الحمل": ["لا يوجد", "تم", "لم يتم"],
+    "حمض الفوليك اثناء الحمل": ["تم", "لم يتم"],
+    "الحديد اثناء الحمل": ["تم", "لم يتم"],
+    "الكالسيوم اثناء الحمل": ["تم", "لم يتم"],
     "التغذية السليمة": ["تم", "لم يتم"],
     "المكملات الغذائية": ["تم", "لم يتم"],
     "التمرينات الرياضية": ["تم", "لم يتم"],
     "قسط من النوم والراحة": ["تم", "لم يتم"],
     "المتابعة الدورية للحمل": ["تم", "لم يتم"],
-    "التحذير من تناول الأدوية بدون إستشارة طبيب والتعرض للتدخين والأبخرة": ["تم", "لم يتم"],
-    "المتاعب البسيطة في الشهور الأولى": ["تم", "لم يتم"],
-    "المتاعب في الشهور الأخيرة": ["تم", "لم يتم"],
-    "علامات الخطر أثناء الحمل": ["تم", "لم يتم"],
-    "مشاكل الولادة المبكرة وكيفية تجنبها": ["تم", "لم يتم"],
-    "حركة الجنين / معرفة جنس الجنين/ تمييز الأصوات من قبل الجنين": ["تم", "لم يتم"],
-    "تغير لون الجلد حول الحلمة وظهور بعض إفرازات من الثدي": ["تم", "لم يتم"],
-    "إرتداء الملابس الفضفاضة المريحة": ["تم", "لم يتم"],
-    "الإستعداد للولادة / تحضير ملابس المولود ، الخ": ["تم", "لم يتم"],
-    "علامات الولادة": ["تم", "لم يتم"],
+    "التحذير من تناول الادوية": ["تم", "لم يتم"],
+    "المتاعب البسيطة فى الشهور الاولى": ["تم", "لم يتم"],
+    "المتاعب فى الشهور الاخيرة": ["تم", "لم يتم"],
+    "علامات الخطر اثناء الحمل": ["تم", "لم يتم"],
+    "مشاكل الولادة المبكرة": ["تم", "لم يتم"],
+    "حركة الجنين ومعرفة الجنس": ["تم", "لم يتم"],
+    "تغير لون الجلد حول الحلمة": ["تم", "لم يتم"],
+    "ارتداء الملابس الفضفاضة": ["تم", "لم يتم"],
+    "الاستعداد للولاده": ["تم", "لم يتم"],
+    "علامات الولاده": ["تم", "لم يتم"],
     "مميزات الولادة الطبيعية": ["تم", "لم يتم"],
-    "الساعة الذهبية الأولى": ["تم", "لم يتم"],
+    "الساعة الذهبية الاولى": ["تم", "لم يتم"],
     "ملامسة الجلد للجلد": ["تم", "لم يتم"],
-    "البداية المبكرة للرضاعة الطبيعية": ["تم", "لم يتم"],
+    "البداية المبكرة للرضاعه الطبيعية": ["تم", "لم يتم"],
     "الرضاعة الطبيعية المطلقة": ["تم", "لم يتم"],
-    "أهمية المباعدة": ["تم", "لم يتم"],
-    "وسائل تنظيم الأسرة": ["تم", "لم يتم"],
-    "إستخدام وسيلة بعد الولادة مباشرة": ["تم", "لم يتم"],
-    "التطور العصبي والنفسي للطفل": ["تم", "لم يتم"],
-    "المتابعة ما بعد الولادة": ["تم", "لم يتم"],
+    "اهمية المباعدة": ["تم", "لم يتم"],
+    "وسائل تنظيم الاسره": ["تم", "لم يتم"],
+    "استخدام وسيلة بعد الولادة مباشرة": ["تم", "لم يتم"],
+    "التطور العصبى والنفسى للطفل": ["تم", "لم يتم"],
     "مستوى التعليم للام": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "مستوى التعليم للاب": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "وظيفة الام": ["يعمل", "لا تعمل"],
@@ -127,12 +136,10 @@ DROPDOWN_OPTIONS = {
     "التغذيه الصحيحة للام": ["تم", "لم يتم"],
     "كيفية التعرف على علامات الخطر": ["تم", "لم يتم"],
     "فوائد الرضاعه الطبيعية": ["تم", "لم يتم"],
-    "كفاية اللبن وكمية البراز": ["تم", "لم يتم"],
-    "أمراض مزمنة": ["تم", "لم يتم"],
-    "مكملات": ["تم", "لم يتم"]
+    "كفاية اللبن وكمية البراز": ["تم", "لم يتم"]
 }
 
-# شيت الحوامل بالترتيب الجديد والمحدد بدقة بناءً على طلبك
+# شيت الحوامل بالترتيب المطلوب
 PREGNANT_COLUMNS = [
     "تاريخ التسجيل", "اسم المستخدم", "الاسم", "العنوان", "الرقم القومى", "رقم الموبايل", "العمر الحالى", "العمر عند الزواج",
     "السن عند الحمل الاول", "مستوى التعليم", "الوظيفة", "تاريخ اخر دورة شهرية", "قرابة بين الزوجين", "عدد مرات الحمل",
@@ -256,45 +263,77 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("تم تحديث ترتيب الحقول في شيت الحوامل تماماً كما طلبتِ وبات النظام جاهزاً.")
+    st.write("تم ضبط تاريخ الزيارة ليتملئ أوتوماتيكياً بتسجيل اليوم، وحساب العمر الحالي أوتوماتيكياً من الرقم القومي.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     
+    auto_fill_start = False
+    today_str = datetime.date.today().strftime("%Y-%m-%d")
+    
     for col in PREGNANT_COLUMNS:
         if f"p_{col}" not in st.session_state:
             if col == "تاريخ الزيارة":
-                st.session_state[f"p_{col}"] = datetime.date.today().strftime("%Y-%m-%d")
+                st.session_state[f"p_{col}"] = today_str
+            elif col in ["حمض الفوليك قبل الحمل", "الحديد قبل الحمل", "الكالسيوم قبل الحمل"]:
+                st.session_state[f"p_{col}"] = "لا يوجد"
+            elif col == "ملاحظات وتوصيات":
+                st.session_state[f"p_{col}"] = "تم"
+            elif col == "التغذية السليمة":
+                auto_fill_start = True
+                st.session_state[f"p_{col}"] = "تم"
+            elif auto_fill_start:
+                if col == "ملاحظات وتوصيات":
+                    auto_fill_start = False
+                st.session_state[f"p_{col}"] = "تم"
             else:
                 st.session_state[f"p_{col}"] = ""
 
     form_data = {}
+    is_in_auto_range = False
     
     for col_name in PREGNANT_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
             continue
             
-        if col_name in DROPDOWN_OPTIONS:
+        if col_name == "التغذية السليمة":
+            is_in_auto_range = True
+            
+        if col_name in ["حمض الفوليك قبل الحمل", "الحديد قبل الحمل", "الكالسيوم قبل الحمل"]:
             options = DROPDOWN_OPTIONS[col_name]
-            current_val = st.session_state.get(f"p_{col_name}", options[0])
+            current_val = st.session_state.get(f"p_{col_name}", "لا يوجد")
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
+        elif is_in_auto_range and col_name in DROPDOWN_OPTIONS:
+            options = DROPDOWN_OPTIONS[col_name]
+            current_val = st.session_state.get(f"p_{col_name}", "تم")
+            idx = options.index(current_val) if current_val in options else 0
+            form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
+        elif is_in_auto_range:
+            form_data[col_name] = st.text_input(col_name, value="تم", key=f"p_{col_name}")
         else:
-            if col_name == "الرقم القومى":
-                form_data[col_name] = st.text_input(col_name, max_chars=14, key=f"p_{col_name}")
-                if form_data[col_name] and len(form_data[col_name]) == 14:
-                    calc_age = parse_national_id(form_data[col_name])
-                    if calc_age:
-                        st.session_state["p_العمر الحالى"] = calc_age
-            elif col_name == "العمر الحالى":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"p_{col_name}")
-            elif col_name == "تاريخ الزيارة":
-                if not st.session_state.get(f"p_{col_name}"):
-                    st.session_state[f"p_{col_name}"] = datetime.date.today().strftime("%Y-%m-%d")
-                form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"p_{col_name}")
+            if col_name in DROPDOWN_OPTIONS:
+                options = DROPDOWN_OPTIONS[col_name]
+                current_val = st.session_state.get(f"p_{col_name}", options[0])
+                idx = options.index(current_val) if current_val in options else 0
+                form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"p_{col_name}")
             else:
-                form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+                if col_name == "الرقم القومى":
+                    form_data[col_name] = st.text_input(col_name, max_chars=14, key=f"p_{col_name}")
+                    if form_data[col_name] and len(form_data[col_name]) == 14:
+                        calc_age = parse_national_id(form_data[col_name])
+                        if calc_age:
+                            st.session_state["p_العمر الحالى"] = calc_age
+                elif col_name == "العمر الحالى":
+                    form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً من الرقم القومي]", key=f"p_{col_name}")
+                elif col_name == "تاريخ الزيارة":
+                    form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم التلقائي]", key=f"p_{col_name}")
+                else:
+                    form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+                    
+        if col_name == "ملاحظات وتوصيات":
+            is_in_auto_range = False
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
         nat_id_val = form_data.get("الرقم القومى", "")
@@ -311,7 +350,7 @@ elif menu == "سجل الحوامل":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الحامل بالترتيب الجديد بنجاح! ✨")
+            st.success("تم حفظ بيانات الحامل بنجاح مع استيفاء الحقول التلقائية! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
