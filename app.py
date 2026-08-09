@@ -225,7 +225,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام مرتب وجاهز تماماً وفقاً لتنسيق الحقول المعتمد.")
+    st.write("النظام مرتب وجاهز تماماً وفقاً لتنسيق الحقول المعتمد والآلي الجديد.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -274,7 +274,10 @@ elif menu == "سجل الأطفال":
     # تهيئة مفاتيح الجلسة للحقول بالترتيب المطلوب
     for col in CHILD_COLUMNS:
         if f"c_{col}" not in st.session_state:
-            st.session_state[f"c_{col}"] = ""
+            if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
+                st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
+            else:
+                st.session_state[f"c_{col}"] = ""
 
     # استرجاع البيانات الذكي عبر الرقم القومي للأم
     nat_id_mom_input = st.text_input("الرقم القومى للام", max_chars=14, key="c_الرقم القومى للام")
@@ -306,6 +309,54 @@ elif menu == "سجل الأطفال":
 
         if col_name in DROPDOWN_OPTIONS:
             options = DROPDOWN_OPTIONS[col_name]
+            
+            # التعبئة التلقائية الذكية لـ "موعد الزيارة" بناءً على عمر الطفل الحالي
+            if col_name == "موعد الزيارة":
+                auto_visit_choice = VISIT_SCHEDULE_OPTIONS[0]
+                try:
+                    age_str = st.session_state.get("c_العمر الحالى للطفل", "")
+                    if age_str:
+                        # استخراج رقم الشهور الرقمي
+                        age_num = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_str)) or 0)
+                        if age_num < 0.25:
+                            auto_visit_choice = "الاسبوع الاول"
+                        elif age_num <= 2:
+                            auto_visit_choice = "عمر شهرين"
+                        elif age_num <= 4:
+                            auto_visit_choice = "عمر 4 شهور"
+                        elif age_num <= 6:
+                            auto_visit_choice = "عمر 6 شهور"
+                        elif age_num <= 9:
+                            auto_visit_choice = "عمر 9 شهور"
+                        elif age_num <= 12:
+                            auto_visit_choice = "عمر 12 شهر"
+                        elif age_num <= 18:
+                            auto_visit_choice = "عمر 18 شهر"
+                        elif age_num <= 24:
+                            auto_visit_choice = "عمر سنتين"
+                        elif age_num <= 30:
+                            auto_visit_choice = "عمر سنتين ونصف"
+                        elif age_num <= 36:
+                            auto_visit_choice = "عمر 3 سنين"
+                        elif age_num <= 42:
+                            auto_visit_choice = "عمر 3 سنين ونصف"
+                        elif age_num <= 48:
+                            auto_visit_choice = "عمر 4 سنين"
+                        elif age_num <= 54:
+                            auto_visit_choice = "عمر 4 سنين ونصف"
+                        elif age_num <= 60:
+                            auto_visit_choice = "عمر 5 سنين"
+                        elif age_num <= 66:
+                            auto_visit_choice = "عمر 5 سنين ونصف"
+                        else:
+                            auto_visit_choice = "عمر 6 سنين"
+                except Exception:
+                    pass
+                
+                # إذا لم يتم اختياره مسبقاً أو رغبت في تحديثه تلقائياً
+                if not st.session_state.get(f"c_{col_name}"):
+                    st.session_state[f"c_{col_name}"] = auto_visit_choice
+
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
             form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
@@ -349,6 +400,46 @@ elif menu == "سجل الأطفال":
 
             elif col_name == "مقاس راس الطفل عند الولادة":
                 form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+
+            elif col_name == "تاريخ الزيارة":
+                if not st.session_state.get(f"c_{col_name}"):
+                    st.session_state[f"c_{col_name}"] = datetime.date.today().strftime("%Y-%m-%d")
+                form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"c_{col_name}")
+
+            elif col_name == "تخطيط الزيارة القادمة":
+                # حساب تاريخ الزيارة القادمة تلقائياً بناءً على موعد الزيارة التالي في القائمة
+                calc_next_visit_date = ""
+                try:
+                    current_visit_sel = st.session_state.get("c_ موعد الزيارة" if "c_ موعد الزيارة" in st.session_state else "c_موعد الزيارة", VISIT_SCHEDULE_OPTIONS[0])
+                    if current_visit_sel in VISIT_SCHEDULE_OPTIONS:
+                        curr_idx = VISIT_SCHEDULE_OPTIONS.index(current_visit_sel)
+                        next_idx = min(curr_idx + 1, len(VISIT_SCHEDULE_OPTIONS) - 1)
+                        next_visit_label = VISIT_SCHEDULE_OPTIONS[next_idx]
+                        
+                        # ربط الأيام أو الشهور المقابلة لكل مرحلة عمرية تقريبية لحساب التاريخ القادم بدقة
+                        schedule_days_map = {
+                            "الاسبوع الاول": 7, "عمر شهرين": 60, "عمر 4 شهور": 120, "عمر 6 شهور": 180,
+                            "عمر 9 شهور": 270, "عمر 12 شهر": 365, "عمر 18 شهر": 545, "عمر سنتين": 730,
+                            "عمر سنتين ونصف": 912, "عمر 3 سنين": 1095, "عمر 3 سنين ونصف": 1277, "عمر 4 سنين": 1460,
+                            "عمر 4 سنين ونصف": 1642, "عمر 5 سنين": 1825, "عمر 5 سنين ونصف": 2007, "عمر 6 سنين": 2190
+                        }
+                        
+                        b_date_str = st.session_state.get("c_تاريخ ميلاد الطفل", "")
+                        if b_date_str:
+                            b_date_obj = datetime.datetime.strptime(b_date_str.strip(), "%Y-%m-%d").date()
+                            target_days = schedule_days_map.get(next_visit_label, 30)
+                            calc_next_visit_date = str(b_date_obj + datetime.timedelta(days=target_days))
+                        else:
+                            # لو تاريخ الميلاد مش مضاف، نحسبه بالنسبة لتاريخ اليوم
+                            curr_v_date = datetime.datetime.strptime(st.session_state.get("c_تاريخ الزيارة", datetime.date.today().strftime("%Y-%m-%d")), "%Y-%m-%d").date()
+                            calc_next_visit_date = str(curr_v_date + datetime.timedelta(days=30))
+                except Exception:
+                    pass
+                
+                if calc_next_visit_date and not st.session_state.get(f"c_{col_name}"):
+                    st.session_state[f"c_{col_name}"] = calc_next_visit_date
+                    
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً بناءً على الموعد القادم]", key=f"c_{col_name}")
 
             elif col_name == "الطول الحالى":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
@@ -411,7 +502,7 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الطفل والترتيب الجديد بنجاح في الإكسيل! ✨")
+            st.success("تم حفظ بيانات الطفل والتواريخ التلقائية بنجاح في الإكسيل! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
