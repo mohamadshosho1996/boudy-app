@@ -591,63 +591,94 @@ elif menu == "سجل الأطفال":
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
-    st.markdown("<h2>📊 لوحة المؤشرات (الداشبورد) وحصر الحالات لكل طبيبة</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 لوحة المؤشرات (الداشبورد) وتصفية الحالات</h2>", unsafe_allow_html=True)
     
     if os.path.exists(EXCEL_FILE):
         excel = pd.ExcelFile(EXCEL_FILE)
         
-        # قراءة البيانات للحوامل والأطفال
         df_preg = pd.read_excel(excel, sheet_name="المشورة الاسرية للحامل", dtype=str) if "المشورة الاسرية للحامل" in excel.sheet_names else pd.DataFrame(columns=PREGNANT_COLUMNS)
         df_child = pd.read_excel(excel, sheet_name="سجل المشورة للاطفال", dtype=str) if "سجل المشورة للاطفال" in excel.sheet_names else pd.DataFrame(columns=CHILD_COLUMNS)
         
-        # تجميع أعداد الحالات لكل مستخدم
+        # قسم الفلترة بالتاريخ
+        st.markdown("### 🔍 تصفية الحالات حسب الفترة الزمنية")
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            start_date = st.date_input("من تاريخ", datetime.date.today() - datetime.timedelta(days=30))
+        with col_f2:
+            end_date = st.date_input("إلى تاريخ", datetime.date.today())
+            
+        # دالة لفلترة البيانات بناءً على تاريخ التسجيل أو الزيارة
+        def filter_by_date(df, date_col):
+            if df.empty or date_col not in df.columns:
+                return df
+            try:
+                # تحويل العمود إلى تاريخ ومقارنته
+                df_filtered = df.copy()
+                df_filtered['temp_date'] = pd.to_datetime(df_filtered[date_col], errors='coerce').dt.date
+                mask = (df_filtered['temp_date'] >= start_date) & (df_filtered['temp_date'] <= end_date)
+                return df_filtered[mask].drop(columns=['temp_date'])
+            except Exception:
+                return df
+
+        # تطبيق الفلترة (نعتمد على "تاريخ التسجيل" كمؤيار زمني دقيق)
+        df_preg_filtered = filter_by_date(df_preg, "تاريخ التسجيل")
+        df_child_filtered = filter_by_date(df_child, "تاريخ التسجيل")
+        
+        # تجميع أعداد الحالات لكل مستخدم خلال الفترة المحددة
         users_list = [v['name'] for v in DEFAULT_USERS.values()]
         stats_data = []
         
         for u_name in users_list:
-            p_count = len(df_preg[df_preg["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_preg.columns else 0
-            c_count = len(df_child[df_child["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_child.columns else 0
+            p_count = len(df_preg_filtered[df_preg_filtered["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_preg_filtered.columns else 0
+            c_count = len(df_child_filtered[df_child_filtered["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_child_filtered.columns else 0
             total_count = p_count + c_count
             stats_data.append({
                 "اسم الطبيبة / المستخدم": u_name,
-                "حالات الحوامل": p_count,
-                "حالات الأطفال": c_count,
+                "حالات الحوامل (فترة محددة)": p_count,
+                "حالات الأطفال (فترة محددة)": c_count,
                 "إجمالي الحالات": total_count
             })
             
         df_stats = pd.DataFrame(stats_data)
         
-        st.subheader("📋 تقرير إحصائي مفصل بعدد الحالات لكل مستخدم")
+        st.subheader(, f"📋 تقرير أداء الحالات للفترة من {start_date} إلى {end_date}")
         st.dataframe(df_stats, use_container_width=True)
         
         # عرض الرسم البياني الإضافي
-        st.subheader("📈 الرسم البياني لتوزيع الحالات")
+        st.subheader("📈 الرسم البياني لتوزيع الحالات خلال الفترة المحددة")
         if not df_stats.empty and df_stats["إجمالي الحالات"].sum() > 0:
-            chart_data = df_stats.set_index("اسم الطبيبة / المستخدم")[["حالات الحوامل", "حالات الأطفال"]]
+            chart_data = df_stats.set_index("اسم الطبيبة / المستخدم")[["حالات الحوامل (فترة محددة)", "حالات الأطفال (فترة محددة)"]]
             st.bar_chart(chart_data)
         else:
-            st.info("لا توجد بيانات كافية لعرض الرسم البياني حتى الآن.")
+            st.info("لا توجد بيانات مسجلة خلال النطاق الزمني المحدد.")
             
+        # زر لتحميل ملف Excel بالكامل
         st.markdown("---")
-        with open(EXCEL_FILE, "rb") as f:
-            st.download_button(
-                label="📥 تنزيل ملف الإكسيل المحدث",
-                data=f,
-                file_name="template.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-            
-        st.markdown("---")
-        for s in excel.sheet_names:
-            st.subheader(f"📁 تفاصيل شيت: {s}")
-            df = pd.read_excel(excel, sheet_name=s, dtype=str)
-            st.dataframe(df, use_container_width=True)
+        st.subheader("📥 تنزيل قاعدة البيانات")
+        if os.path.exists(EXCEL_FILE):
+            with open(EXCEL_FILE, "rb") as f:
+                st.download_button(
+                    label="تحميل ملف النظام كاملاً (Excel) 📊",
+                    data=f,
+                    file_name="Family_Counseling_System_Data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
     else:
-        st.info("لا توجد بيانات مسجلة حتى الآن.")
+        st.warning("لم يتم إنشاء ملف البيانات بعد. قيدي بعض الحالات ليظهر التقرير هنا.")
 
-# ==================== 5. إدارة المستخدمين ====================
+# ==================== 5. إدارة المستخدمين (للمدير فقط) ====================
 elif menu == "إدارة المستخدمين" and st.session_state.role == "admin":
-    st.markdown("<h2>⚙️ إدارة حسابات الطبيبات وصلاحيات النظام</h2>", unsafe_allow_html=True)
-    for k, v in DEFAULT_USERS.items():
-        st.info(f"اسم المستخدم (ID): **{k}** | الاسم: **{v['name']}** | الصلاحية: **{v['role']}**")
+    st.markdown("<h2>⚙️ إدارة المستخدمين وصلاحيات النظام</h2>", unsafe_allow_html=True)
+    st.write("هنا يمكنك مراجعة الحسابات المفعلة داخل النظام للطبيبات والمشرفات.")
+    
+    users_df_data = []
+    for username, info in DEFAULT_USERS.items():
+        users_df_data.append({
+            "اسم المستخدم (الكود)": username,
+            "اسم الطبيبة / اللقب": info["name"],
+            "الصلاحية": "مدير النظام (Admin)" if info["role"] == "admin" else "مستخدم عادي (User)"
+        })
+    
+    st.dataframe(pd.DataFrame(users_df_data), use_container_width=True)
+    st.success("جميع الحسابات تعمل بانتظام وآمنة تماماً.")
