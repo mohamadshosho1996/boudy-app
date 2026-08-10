@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# تنسيق CSS معالَج بحذر لمنع أخطاء القراءة في بايثون
+# تنسيق CSS معالَج بحذر لمنع أخطاء القراءة في بايثون، وتصميم القلب الأحمر الكبير
 custom_css = """
 <style>
 .main .block-container {
@@ -39,6 +39,60 @@ h1, h2, h3 {
     color: #701A75;
 }
 footer {visibility: hidden;}
+
+/* تصميم القلب الأحمر الكبير */
+.big-heart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0;
+}
+.big-heart {
+    position: relative;
+    width: 180px;
+    height: 160px;
+    background-color: #ff3366;
+    transform: rotate(-45deg);
+    box-shadow: 0 10px 25px rgba(255, 51, 102, 0.4);
+    animation: heartbeat 1.2s infinite;
+}
+.big-heart::before,
+.big-heart::after {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 160px;
+    background-color: #ff3366;
+    border-radius: 50%;
+}
+.big-heart::before {
+    top: -90px;
+    left: 0;
+}
+.big-heart::after {
+    left: 90px;
+    top: 0;
+}
+.heart-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    width: 160px;
+    z-index: 10;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+@keyframes heartbeat {
+    0% { transform: scale(1) rotate(-45deg); }
+    15% { transform: scale(1.1) rotate(-45deg); }
+    30% { transform: scale(1) rotate(-45deg); }
+    45% { transform: scale(1.15) rotate(-45deg); }
+    60% { transform: scale(1) rotate(-45deg); }
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -455,7 +509,6 @@ elif menu == "سجل الأطفال":
             if col_name in growth_fields_list:
                 options_growth = ["طبيعى", "متقدم", "متاخر"]
                 
-                # حساب ذكي دقيق يعتمد على مقارنة الوزن والطول الحالي بالمعدل الطبيعي حسب العمر
                 try:
                     w_curr_val = float(st.session_state.get("c_الوزن الحالى", 3.0) or 3.0)
                     l_curr_val = float(st.session_state.get("c_الطول الحالى", 50.0) or 50.0)
@@ -634,7 +687,16 @@ elif menu == "سجل الأطفال":
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
+            
+            # عرض رسالة النجاح والقلب الأحمر الكبير بداخلها اسم د. شيماء
             st.success("تم حفظ بيانات الطفل بنجاح! ✨")
+            st.markdown("""
+                <div class="big-heart-container">
+                    <div class="big-heart">
+                        <div class="heart-text">د. شيماء</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
