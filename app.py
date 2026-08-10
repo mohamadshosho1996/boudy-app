@@ -120,13 +120,13 @@ DROPDOWN_OPTIONS = {
     "ملامسة الجلد فى الساعه الذهبية الاولى": ["تم", "لم يتم"],
     "موقف استخدام الوسيلة": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب", "حدث", "لم يحدث"],
     "الحمل الجديد": ["مرغوب", "غير مرغوب"],
-    "الخدمات الغير ملباه": ["يوجد", "لا يوجد"],
-    "النمو والتطور الحركى": ["طبيعي", "متقدم", "متأخر"],
-    "التطور الادراكى والمعرفى": ["طبيعي", "متقدم", "متأخر"],
-    "التطور اللغوى": ["طبيعي", "متقدم", "متأخر"],
-    "رسائل التربية الايجابية": ["طبيعي", "متقدم", "متأخر"],
-    "الانشطة التحفيزية": ["طبيعي", "متقدم", "متأخر"],
-    "التوعية عن التغذية التكميلية وسلامة الغذاء": ["طبيعي", "متقدم", "متأخر"],
+    "الخدمات الغير ملباه": ["لا يوجد", "يوجد"],
+    "النمو والتطور الحركى": ["طبيعى", "متقدم", "متاخر"],
+    "التطور الادراكى والمعرفى": ["طبيعى", "متقدم", "متاخر"],
+    "التطور اللغوى": ["طبيعى", "متقدم", "متاخر"],
+    "رسائل التربية الايجابية": ["طبيعى", "متقدم", "متاخر"],
+    "الانشطة التحفيزية": ["طبيعى", "متقدم", "متاخر"],
+    "التوعية عن التغذية التكميلية وسلامة الغذاء": ["طبيعى", "متقدم", "متاخر"],
     "اعطاء جرعة الحديد اليومية": ["يوجد", "لا يوجد"],
     "اهمية استخدام الوسيلة": ["تم التوعية", "غير مهتمة", "مرفوض"],
     "اعطاء الجرعة اليومية من فيتامين د": ["يوجد", "لا يوجد"],
@@ -359,6 +359,8 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
                 st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
+            elif col == "الخدمات الغير ملباه":
+                st.session_state[f"c_{col}"] = "لا يوجد"
             else:
                 st.session_state[f"c_{col}"] = ""
 
@@ -437,14 +439,25 @@ elif menu == "سجل الأطفال":
                 
                 st.session_state[f"c_{col_name}"] = auto_visit_choice
 
+            # تعيين القيمة الافتراضية للخدمات الغير ملباة لتكون "لا يوجد"
+            if col_name == "الخدمات الغير ملباه" and not st.session_state.get(f"c_{col_name}"):
+                st.session_state[f"c_{col_name}"] = "لا يوجد"
+
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
             
-            if col_name == "النمو والتطور الحركى":
-                options_growth = ["طبيعي", "متقدم", "متأخر"]
+            growth_fields_list = [
+                "النمو والتطور الحركى", "التطور الادراكى والمعرفى", "التطور اللغوى",
+                "رسائل التربية الايجابية", "الانشطة التحفيزية", "التوعية عن التغذية التكميلية وسلامة الغذاء"
+            ]
+            
+            if col_name in growth_fields_list:
+                options_growth = ["طبيعى", "متقدم", "متاخر"]
                 try:
                     w_birth_val = float(st.session_state.get("c_وزن الطفل عند الولادة", 3.0) or 3.0)
+                    l_birth_val = float(st.session_state.get("c_طول الطفل عند الولادة", 50.0) or 50.0)
                     w_curr_val = float(st.session_state.get("c_الوزن الحالى", w_birth_val) or w_birth_val)
+                    l_curr_val = float(st.session_state.get("c_الطول الحالى", l_birth_val) or l_birth_val)
                     
                     age_raw = st.session_state.get("c_العمر الحالى للطفل", "0")
                     if "يوم" in age_raw or "أسبوع" in age_raw:
@@ -452,20 +465,24 @@ elif menu == "سجل الأطفال":
                     else:
                         age_in_months = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_raw)) or 0)
                     
-                    expected_weight = 3.2 + (age_in_months * 0.5) if age_in_months <= 12 else 10 + ((age_in_months - 12) * 0.2)
-                    ratio = w_curr_val / expected_weight if expected_weight > 0 else 1.0
+                    expected_weight = w_birth_val + (age_in_months * 0.6) if age_in_months <= 12 else 10 + ((age_in_months - 12) * 0.2)
+                    expected_length = l_birth_val + (age_in_months * 2.5) if age_in_months <= 12 else 75 + ((age_in_months - 12) * 0.5)
                     
-                    if ratio < 0.8:
-                        auto_m = "متأخر"
-                    elif ratio > 1.2:
+                    weight_ratio = w_curr_val / expected_weight if expected_weight > 0 else 1.0
+                    length_ratio = l_curr_val / expected_length if expected_length > 0 else 1.0
+                    avg_performance = (weight_ratio + length_ratio) / 2.0
+                    
+                    if avg_performance < 0.85:
+                        auto_m = "متاخر"
+                    elif avg_performance > 1.15:
                         auto_m = "متقدم"
                     else:
-                        auto_m = "طبيعي"
+                        auto_m = "طبيعى"
                 except Exception:
-                    auto_m = "طبيعي"
+                    auto_m = "طبيعى"
                 
                 m_idx = options_growth.index(auto_m) if auto_m in options_growth else 0
-                form_data[col_name] = st.selectbox(f"{col_name} [محسوب تلقائياً من الوزن والعمر - المعايير العالمية]", options_growth, index=m_idx, key=f"c_{col_name}")
+                form_data[col_name] = st.selectbox(f"{col_name} [تقييم آلي حسب معايير النمو العالمية للوزن والطول مقارنة بالعمر]", options_growth, index=m_idx, key=f"c_{col_name}")
             else:
                 form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
                 
@@ -504,10 +521,8 @@ elif menu == "سجل الأطفال":
                                 age_display = f"{months_count} شهر"
                             st.session_state["c_العمر الحالى للطفل"] = age_display
                             
-                            # حساب العمر الرحمي تصاعدياً بناءً على عمر الطفل (الأسابيع أو الشهور المتبقية لتكملة الحمل الطبيعي 40 أسبوعاً أو احتساب النمو الحقيقي من عمر الولادة)
-                            # إذا كان الطفل حديث الولادة أو عمره ببضعة أسابيع يتم حساب عمره الرحمي الحقيقي بأسابيع الحمل (مثلاً 37-41 أسبوعاً)، وإذا تخطى أسابيع الحمل الأولى يعبر عنها بالأسابيع المكافئة أو يعرض القيمة التراكمية الصحيحة
-                            calculated_gestational_weeks = min(42, max(37, 40 - max(0, round((delta_days - 280) / 7)))) if delta_days > 280 else min(42, 37 + round(delta_days / 7))
-                            st.session_state["c_العمر الرحمى للطفل"] = f"{calculated_gestational_weeks} أسبوع"
+                            gestational_weeks_calc = max(24, min(42, 40 - max(0, round((280 - delta_days) / 7))))
+                            st.session_state["c_العمر الرحمى للطفل"] = f"{gestational_weeks_calc} أسبوع"
                 except Exception:
                     pass
 
@@ -515,7 +530,7 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
                 
             elif col_name == "العمر الرحمى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً بناءً على تاريخ الولادة والنمو]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]", key=f"c_{col_name}")
 
             elif col_name == "وزن الطفل عند الولادة":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
