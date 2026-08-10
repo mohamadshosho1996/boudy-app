@@ -41,7 +41,6 @@ st.markdown("""
     </style>
     
     <script>
-    // تفعيل الانتقال التلقائي عند الضغط على Enter بين الحقول
     document.addEventListener("DOMContentLoaded", function() {
         const inputs = document.querySelectorAll("input");
         inputs.forEach((input, index) => {
@@ -188,6 +187,7 @@ CHILD_COLUMNS = [
 ]
 
 def parse_national_id(nat_id):
+    """استخراج تاريخ الميلاد والعمر من الرقم القومي المصري (14 رقم)"""
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
         century_code = int(nat_id[0])
         year_digits = int(nat_id[1:3])
@@ -199,10 +199,10 @@ def parse_national_id(nat_id):
             birth_date = datetime.date(birth_year, month, day)
             today = datetime.date.today()
             age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-            return str(age)
+            return str(birth_date), str(age)
         except ValueError:
-            return ""
-    return ""
+            return "", ""
+    return "", ""
 
 def get_existing_data(nat_id, sheet_name, id_column):
     if os.path.exists(EXCEL_FILE) and nat_id and len(nat_id) == 14:
@@ -338,7 +338,7 @@ elif menu == "سجل الحوامل":
                 if col_name == "الرقم القومى":
                     form_data[col_name] = st.text_input(col_name, max_chars=14, key=f"p_{col_name}")
                     if form_data[col_name] and len(form_data[col_name]) == 14:
-                        calc_age = parse_national_id(form_data[col_name])
+                        _, calc_age = parse_national_id(form_data[col_name])
                         if calc_age:
                             st.session_state["p_العمر الحالى"] = calc_age
                 elif col_name == "العمر الحالى":
@@ -381,6 +381,12 @@ elif menu == "سجل الأطفال":
 
     nat_id_mom_input = st.text_input("الرقم القومى للام", max_chars=14, key="c_الرقم القومى للام")
     
+    # التوليد التلقائي لتاريخ ميلاد الأم من الرقم القومي للأم
+    if nat_id_mom_input and len(nat_id_mom_input) == 14:
+        b_date_mom, _ = parse_national_id(nat_id_mom_input)
+        if b_date_mom and not st.session_state.get("c_تاريخ ميلاد الام"):
+            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+
     if nat_id_mom_input and len(nat_id_mom_input) == 14:
         if st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
             found_data = get_existing_data(nat_id_mom_input, "سجل المشورة للاطفال", "الرقم القومى للام") or get_existing_data(nat_id_mom_input, "المشورة الاسرية للحامل", "الرقم القومى")
@@ -451,14 +457,37 @@ elif menu == "سجل الأطفال":
 
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
-            form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
+            
+            # إذا كان الحقل هو التطور الحركي، نجعله يعتمد على الحساب التلقائي مع إمكانية التعديل
+            if col_name == "النمو والتطور الحركى":
+                auto_m = "طبيعي"
+                try:
+                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
+                    w_curr = st.session_state.get("c_الوزن الحالى", "0")
+                    if age_s and w_curr:
+                        am = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
+                        cw = float(''.join(filter(lambda x: x.isdigit() or x=='.', w_curr)) or 0)
+                        # حساب الوزن المتوقع تقريبياً حسب العمر بالأشهر
+                        exp_w = 3.2 + (am * 0.5) if am <= 12 else 10 + ((am - 12) * 0.2)
+                        if cw > (exp_w * 1.2):
+                            auto_m = "متقدم"
+                        elif cw < (exp_w * 0.75):
+                            auto_m = "متأخر"
+                        else:
+                            auto_m = "طبيعي"
+                except Exception:
+                    pass
+                m_idx = options.index(auto_m) if auto_m in options else 0
+                form_data[col_name] = st.selectbox(f"{col_name} [محسوب تلقائياً من الوزن والعمر]", options, index=m_idx, key=f"c_{col_name}")
+            else:
+                form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
             
         else:
             if col_name == "تاريخ ميلاد الام":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً من الرقم القومي للأم]", key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [أدخل تاريخ الميلاد لتوليد العمر والعمر الرحمي]", key=f"c_{col_name}")
                 try:
                     if form_data[col_name]:
                         b_date_obj = datetime.datetime.strptime(form_data[col_name].strip(), "%Y-%m-%d").date()
@@ -471,10 +500,10 @@ elif menu == "سجل الأطفال":
                     pass
 
             elif col_name == "العمر الحالى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً من تاريخ الميلاد]", key=f"c_{col_name}")
                 
             elif col_name == "العمر الرحمى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً من تاريخ الميلاد]", key=f"c_{col_name}")
 
             elif col_name == "وزن الطفل عند الولادة":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
@@ -534,9 +563,9 @@ elif menu == "سجل الأطفال":
                     age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
                     w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
                     if age_s and w_curr and form_data[col_name]:
-                        age_m = float(age_s)
-                        weight_kg = float(w_curr)
-                        length_cm = float(form_data[col_name])
+                        age_m = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
+                        weight_kg = float(''.join(filter(lambda x: x.isdigit() or x=='.', w_curr)) or 0)
+                        length_cm = float(''.join(filter(lambda x: x.isdigit() or x=='.', form_data[col_name])) or 0)
                         if age_m <= 3:
                             base_h = 35 + (age_m * 1.8)
                         elif age_m <= 12:
@@ -549,25 +578,6 @@ elif menu == "سجل الأطفال":
 
             elif col_name == "محيط الراس الحالى":
                 form_data[col_name] = st.text_input(f"{col_name} [محسوب بالمعايير العالمية]", key=f"c_{col_name}")
-
-            elif col_name == "النمو والتطور الحركى":
-                auto_m = "طبيعي"
-                try:
-                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
-                    w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
-                    if age_s and w_curr:
-                        am = float(age_s)
-                        cw = float(w_curr)
-                        exp = 3 + (am * 0.5)
-                        if cw > (exp * 1.25):
-                            auto_m = "متقدم"
-                        elif cw < (exp * 0.75):
-                            auto_m = "متأخر"
-                except ValueError:
-                    pass
-                m_opts = DROPDOWN_OPTIONS["النمو والتطور الحركى"]
-                m_idx = m_opts.index(auto_m) if auto_m in m_opts else 0
-                form_data[col_name] = st.selectbox(f"{col_name} [محسوب تلقائياً وقابل للتعديل]", m_opts, index=m_idx, key=f"c_{col_name}")
 
             else:
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
@@ -599,7 +609,6 @@ elif menu == "استعراض البيانات والداشبورد":
         df_preg = pd.read_excel(excel, sheet_name="المشورة الاسرية للحامل", dtype=str) if "المشورة الاسرية للحامل" in excel.sheet_names else pd.DataFrame(columns=PREGNANT_COLUMNS)
         df_child = pd.read_excel(excel, sheet_name="سجل المشورة للاطفال", dtype=str) if "سجل المشورة للاطفال" in excel.sheet_names else pd.DataFrame(columns=CHILD_COLUMNS)
         
-        # قسم الفلترة بالتاريخ
         st.markdown("### 🔍 تصفية الحالات حسب الفترة الزمنية")
         col_f1, col_f2 = st.columns(2)
         with col_f1:
@@ -607,7 +616,6 @@ elif menu == "استعراض البيانات والداشبورد":
         with col_f2:
             end_date = st.date_input("إلى تاريخ", datetime.date.today())
             
-        # دالة لفلترة البيانات بناءً على تاريخ التسجيل أو الزيارة
         def filter_by_date(df, date_col):
             if df.empty or date_col not in df.columns:
                 return df
@@ -619,65 +627,32 @@ elif menu == "استعراض البيانات والداشبورد":
             except Exception:
                 return df
 
-        # تطبيق الفلترة
         df_preg_filtered = filter_by_date(df_preg, "تاريخ التسجيل")
         df_child_filtered = filter_by_date(df_child, "تاريخ التسجيل")
         
-        # تجميع أعداد الحالات لكل مستخدم خلال الفترة المحددة
-        users_list = [v['name'] for v in DEFAULT_USERS.values()]
-        stats_data = []
+        c1, c2 = st.columns(2)
+        c1.metric("إجمالي الحوامل المسجلات بالفترة", len(df_preg_filtered))
+        c2.metric("إجمالي الأطفال المسجلين بالفترة", len(df_child_filtered))
         
-        for u_name in users_list:
-            p_count = len(df_preg_filtered[df_preg_filtered["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_preg_filtered.columns else 0
-            c_count = len(df_child_filtered[df_child_filtered["اسم المستخدم"] == u_name]) if "اسم المستخدم" in df_child_filtered.columns else 0
-            total_count = p_count + c_count
-            stats_data.append({
-                "اسم الطبيبة / المستخدم": u_name,
-                "حالات الحوامل (فترة محددة)": p_count,
-                "حالات الأطفال (فترة محددة)": c_count,
-                "إجمالي الحالات": total_count
-            })
-            
-        df_stats = pd.DataFrame(stats_data)
-        
-        st.subheader(f"📋 تقرير أداء الحالات للفترة من {start_date} إلى {end_date}")
-        st.dataframe(df_stats, use_container_width=True)
-        
-        # عرض الرسم البياني الإضافي
-        st.subheader("📈 الرسم البياني لتوزيع الحالات خلال الفترة المحددة")
-        if not df_stats.empty and df_stats["إجمالي الحالات"].sum() > 0:
-            chart_data = df_stats.set_index("اسم الطبيبة / المستخدم")[["حالات الحوامل (فترة محددة)", "حالات الأطفال (فترة محددة)"]]
-            st.bar_chart(chart_data)
-        else:
-            st.info("لا توجد بيانات مسجلة خلال النطاق الزمني المحدد.")
-            
-        # زر لتحميل ملف Excel بالكامل
         st.markdown("---")
-        st.subheader("📥 تنزيل قاعدة البيانات")
-        if os.path.exists(EXCEL_FILE):
-            with open(EXCEL_FILE, "rb") as f:
-                st.download_button(
-                    label="تحميل ملف النظام كاملاً (Excel) 📊",
-                    data=f,
-                    file_name="Family_Counseling_System_Data.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+        st.markdown("### 🤰 سجل الحوامل المسجل")
+        st.dataframe(df_preg_filtered, use_container_width=True)
+        
+        st.markdown("### 👶 سجل الأطفال المسجل")
+        st.dataframe(df_child_filtered, use_container_width=True)
     else:
-        st.warning("لم يتم إنشاء ملف البيانات بعد. قيدي بعض الحالات ليظهر التقرير هنا.")
+        st.info("لا توجد بيانات مسجلة حتى الآن.")
 
-# ==================== 5. إدارة المستخدمين (للمدير فقط) ====================
-elif menu == "إدارة المستخدمين" and st.session_state.role == "admin":
-    st.markdown("<h2>⚙️ إدارة المستخدمين وصلاحيات النظام</h2>", unsafe_allow_html=True)
-    st.write("هنا يمكنك مراجعة الحسابات المفعلة داخل النظام للطبيبات والمشرفات.")
-    
-    users_df_data = []
-    for username, info in DEFAULT_USERS.items():
-        users_df_data.append({
-            "اسم المستخدم (الكود)": username,
-            "اسم الطبيبة / اللقب": info["name"],
-            "الصلاحية": "مدير النظام (Admin)" if info["role"] == "admin" else "مستخدم عادي (User)"
-        })
-    
-    st.dataframe(pd.DataFrame(users_df_data), use_container_width=True)
-    st.success("جميع الحسابات تعمل بانتظام وآمنة تماماً.")
+# ==================== 5. إدارة المستخدمين ====================
+elif menu == "إدارة المستخدمين":
+    if st.session_state.role == "admin":
+        st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
+        st.write("الحسابات الحالية المسجلة في النظام:")
+        
+        users_df = pd.DataFrame([
+            {"اسم المستخدم": k, "الاسم الظاهر": v["name"], "الصلاحية": v["role"]} 
+            for k, v in DEFAULT_USERS.items()
+        ])
+        st.dataframe(users_df, use_container_width=True)
+    else:
+        st.error("عذراً، هذه الصفحة مخصصة للمدير (Admin) فقط!")
