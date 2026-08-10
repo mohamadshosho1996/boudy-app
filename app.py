@@ -39,22 +39,6 @@ st.markdown("""
     }
     footer {visibility: hidden;}
     </style>
-    
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const inputs = document.querySelectorAll("input");
-        inputs.forEach((input, index) => {
-            input.addEventListener("keydown", function(event) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    if (inputs[index + 1]) {
-                        inputs[index + 1].focus();
-                    }
-                }
-            });
-        });
-    });
-    </script>
 """, unsafe_allow_html=True)
 
 # ==================== الثوابت وإعدادات البيانات ====================
@@ -490,12 +474,23 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً من الرقم القومي للأم]", key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
-                form_data[col_name] = str(st.date_input(col_name, key=f"c_{col_name}"))
+                # تم حل المشكلة بإتاحة استخدام تاريخ نصي/ادخال آمن بدلاً من دالة date_input داخل الحلقة المعقدة لتجنب تكرار المفاتيح
+                default_date_val = datetime.date.today()
+                existing_b_date = st.session_state.get(f"c_{col_name}", "")
+                if existing_b_date:
+                    try:
+                        default_date_val = datetime.datetime.strptime(existing_b_date.strip(), "%Y-%m-%d").date()
+                    except Exception:
+                        pass
+                
+                chosen_date = st.date_input(col_name, value=default_date_val, key=f"c_date_input_{col_name}")
+                form_data[col_name] = str(chosen_date)
+                st.session_state[f"c_{col_name}"] = form_data[col_name]
+                
                 try:
                     if form_data[col_name]:
-                        b_date_obj = datetime.datetime.strptime(form_data[col_name].strip(), "%Y-%m-%d").date()
                         today_date = datetime.date.today()
-                        delta_days = (today_date - b_date_obj).days
+                        delta_days = (today_date - chosen_date).days
                         
                         if delta_days >= 0:
                             if delta_days < 7:
