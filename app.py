@@ -98,7 +98,7 @@ DROPDOWN_OPTIONS = {
     "اهمية المباعدة": ["تم", "لم يتم"],
     "وسائل تنظيم الاسره": ["تم", "لم يتم"],
     "استخدام وسيلة بعد الولادة مباشرة": ["تم", "لم يتم"],
-    "التطور العصبى والنفسى للطفل": ["تم", "لم يتم"],
+    "التطور العصبى والنفسى للطفل": ["طبيعى", "متقدم", "متاخر"],
     "مستوى التعليم للام": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "مستوى التعليم للاب": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "وظيفة الام": ["يعمل", "لا تعمل"],
@@ -439,7 +439,6 @@ elif menu == "سجل الأطفال":
                 
                 st.session_state[f"c_{col_name}"] = auto_visit_choice
 
-            # تعيين القيمة الافتراضية للخدمات الغير ملباة لتكون "لا يوجد"
             if col_name == "الخدمات الغير ملباه" and not st.session_state.get(f"c_{col_name}"):
                 st.session_state[f"c_{col_name}"] = "لا يوجد"
 
@@ -453,6 +452,8 @@ elif menu == "سجل الأطفال":
             
             if col_name in growth_fields_list:
                 options_growth = ["طبيعى", "متقدم", "متاخر"]
+                
+                # حساب ذكي دقيق يعتمد على مقارنة الوزن والطول الحالي ببيانات الولادة والعمر الزمني
                 try:
                     w_birth_val = float(st.session_state.get("c_وزن الطفل عند الولادة", 3.0) or 3.0)
                     l_birth_val = float(st.session_state.get("c_طول الطفل عند الولادة", 50.0) or 50.0)
@@ -465,6 +466,7 @@ elif menu == "سجل الأطفال":
                     else:
                         age_in_months = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_raw)) or 0)
                     
+                    # معادلة التوقع الطبيعي للنمو بالشهور
                     expected_weight = w_birth_val + (age_in_months * 0.6) if age_in_months <= 12 else 10 + ((age_in_months - 12) * 0.2)
                     expected_length = l_birth_val + (age_in_months * 2.5) if age_in_months <= 12 else 75 + ((age_in_months - 12) * 0.5)
                     
@@ -480,9 +482,16 @@ elif menu == "سجل الأطفال":
                         auto_m = "طبيعى"
                 except Exception:
                     auto_m = "طبيعى"
+
+                current_val = st.session_state.get(f"c_{col_name}", auto_m)
+                m_idx = options_growth.index(current_val) if current_val in options_growth else options_growth.index(auto_m)
                 
-                m_idx = options_growth.index(auto_m) if auto_m in options_growth else 0
-                form_data[col_name] = st.selectbox(f"{col_name} [تقييم آلي حسب معايير النمو العالمية للوزن والطول مقارنة بالعمر]", options_growth, index=m_idx, key=f"c_{col_name}")
+                form_data[col_name] = st.selectbox(
+                    f"{col_name} [حساب تلقائي ذكي قابل للتعديل الفوري]", 
+                    options_growth, 
+                    index=m_idx, 
+                    key=f"c_{col_name}"
+                )
             else:
                 form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
                 
