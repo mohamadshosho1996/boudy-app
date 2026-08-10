@@ -336,7 +336,7 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.rerun()
 
 st.markdown("---")
-col_mobile_nav, col_mobile_logout = st.columns([3, 1]) مفضل
+col_mobile_nav, col_mobile_logout = st.columns([3, 1])
 with col_mobile_nav:
     main_screen_menu = st.selectbox("📱 انتقل مباشرة إلى القسم المطلوب:", menu_options, key="mobile_selectbox")
 with col_mobile_logout:
@@ -442,7 +442,6 @@ elif menu == "سجل الحوامل":
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
             
-            # التأكد من عدم تكرار الأعمدة تماماً وتوحيد الشكل
             for col in PREGNANT_COLUMNS:
                 if col not in new_df.columns:
                     new_df[col] = ""
@@ -733,7 +732,6 @@ elif menu == "سجل الأطفال":
             
             new_df = pd.DataFrame([form_data], dtype=str)
             
-            # التأكد من تطابق الأعمدة تماماً مع جدول الأطفال المعتمد
             for col in CHILD_COLUMNS:
                 if col not in new_df.columns:
                     new_df[col] = ""
