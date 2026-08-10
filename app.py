@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# تنسيق CSS معالَج بحذر لمنع أخطاء القراءة في بايثون، وتصميم القلب الأحمر الكبير
+# تنسيق CSS مع تأثيرات تطاير القلوب الحمراء والقلب الكبير
 custom_css = """
 <style>
 .main .block-container {
@@ -40,37 +40,37 @@ h1, h2, h3 {
 }
 footer {visibility: hidden;}
 
-/* تصميم القلب الأحمر الكبير */
+/* تصميم القلب الأحمر الكبير النابض */
 .big-heart-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 30px 0;
+    margin: 20px 0;
 }
 .big-heart {
     position: relative;
-    width: 180px;
-    height: 160px;
+    width: 160px;
+    height: 140px;
     background-color: #ff3366;
     transform: rotate(-45deg);
-    box-shadow: 0 10px 25px rgba(255, 51, 102, 0.4);
-    animation: heartbeat 1.2s infinite;
+    box-shadow: 0 10px 25px rgba(255, 51, 102, 0.5);
+    animation: heartbeat 1s infinite;
 }
 .big-heart::before,
 .big-heart::after {
     content: "";
     position: absolute;
-    width: 180px;
-    height: 160px;
+    width: 160px;
+    height: 140px;
     background-color: #ff3366;
     border-radius: 50%;
 }
 .big-heart::before {
-    top: -90px;
+    top: -80px;
     left: 0;
 }
 .big-heart::after {
-    left: 90px;
+    left: 80px;
     top: 0;
 }
 .heart-text {
@@ -79,12 +79,12 @@ footer {visibility: hidden;}
     left: 50%;
     transform: translate(-50%, -50%) rotate(45deg);
     color: white;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     text-align: center;
-    width: 160px;
+    width: 140px;
     z-index: 10;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
 }
 @keyframes heartbeat {
     0% { transform: scale(1) rotate(-45deg); }
@@ -92,6 +92,38 @@ footer {visibility: hidden;}
     30% { transform: scale(1) rotate(-45deg); }
     45% { transform: scale(1.15) rotate(-45deg); }
     60% { transform: scale(1) rotate(-45deg); }
+}
+
+/* تأثير تطاير القلوب الكثيرة */
+.floating-hearts-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 99999;
+    overflow: hidden;
+}
+.f-heart {
+    position: absolute;
+    color: #ff2255;
+    font-size: 24px;
+    animation: flyUp 3s linear forwards;
+    opacity: 0;
+}
+@keyframes flyUp {
+    0% {
+        transform: translateY(100vh) scale(0.5) rotate(0deg);
+        opacity: 1;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-10vh) scale(1.5) rotate(360deg);
+        opacity: 0;
+    }
 }
 </style>
 """
@@ -315,10 +347,18 @@ with col_mobile_logout:
 menu = main_screen_menu
 st.markdown("---")
 
+# ==================== دالة تفريغ الحقول لسجل الأطفال ====================
+def clear_child_form():
+    for col in CHILD_COLUMNS:
+        if f"c_{col}" in st.session_state:
+            st.session_state[f"c_{col}"] = ""
+    st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
+    st.session_state["c_الخدمات الغير ملباه"] = "لا يوجد"
+
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال مع الحسابات التلقائية والتنقل الذكي.")
+    st.write("النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال مع الحسابات التلقائية وتطاير القلوب عند الحفظ.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -688,15 +728,34 @@ elif menu == "سجل الأطفال":
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
             
-            # عرض رسالة النجاح والقلب الأحمر الكبير بداخلها اسم د. شيماء
-            st.success("تم حفظ بيانات الطفل بنجاح! ✨")
-            st.markdown("""
+            # كود توليد قلوب كثيرة متطايرة لمدة 3 ثواني مع القلب الكبير باسم د. شيماء
+            hearts_html = ""
+            import random
+            for _ in range(35):
+                left_pos = random.randint(0, 95)
+                anim_dur = random.uniform(1.5, 3.0)
+                delay = random.uniform(0, 0.5)
+                size = random.randint(18, 38)
+                hearts_html += f'<div class="f-heart" style="left: {left_pos}vw; font-size: {size}px; animation-duration: {anim_dur}s; animation-delay: {delay}s;">❤️</div>'
+
+            st.markdown(f"""
+                <div class="floating-hearts-overlay">
+                    {hearts_html}
+                </div>
                 <div class="big-heart-container">
                     <div class="big-heart">
                         <div class="heart-text">د. شيماء</div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
+            
+            st.success("تم حفظ بيانات الطفل بنجاح! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
+            
+            # تفريغ الحقول وإعادة التحميل بعد 3 ثواني
+            import time
+            time.sleep(3)
+            clear_child_form()
+            st.rerun()
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
