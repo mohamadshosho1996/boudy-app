@@ -805,6 +805,24 @@ elif menu == "استعراض البيانات والداشبورد":
                 else:
                     filtered_preg = df_preg
                 st.dataframe(filtered_preg, use_container_width=True)
+                
+                # زر الإزالة الخاص بالآدمن فقط في شيت الحوامل
+                if st.session_state.role == "admin":
+                    st.markdown("---")
+                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل للحامل")
+                    preg_to_delete = st.selectbox("اختر رقم الحامل القومي / أو اسم للذف", options=[""] + list(filtered_preg["الرقم القومى"].dropna().unique()), key="del_preg_select")
+                    if st.button("🗑️ إزالة هذا السجل نهائياً من شيت الحوامل", key="btn_del_preg"):
+                        if preg_to_delete:
+                            updated_df_preg = df_preg[df_preg["الرقم القومى"] != preg_to_delete]
+                            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+                            all_dfs["المشورة الاسرية للحامل"] = updated_df_preg
+                            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                                for s, df in all_dfs.items():
+                                    df.to_excel(writer, sheet_name=s, index=False)
+                            st.success("تم حذف السجل بنجاح! جاري التحديث...")
+                            st.rerun()
+                        else:
+                            st.warning("الرجاء اختيار سجل أولاً للحذف.")
             else:
                 st.info("لا توجد بيانات مسجلة للحوامل حتى الآن.")
                 
@@ -817,6 +835,24 @@ elif menu == "استعراض البيانات والداشبورد":
                 else:
                     filtered_child = df_child
                 st.dataframe(filtered_child, use_container_width=True)
+                
+                # زر الإزالة الخاص بالآدمن فقط في شيت الأطفال
+                if st.session_state.role == "admin":
+                    st.markdown("---")
+                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل لطفل")
+                    child_to_delete = st.selectbox("اختر الرقم القومي للأم المرتبط بسجل الطفل للحذف", options=[""] + list(filtered_child["الرقم القومى للام"].dropna().unique()), key="del_child_select")
+                    if st.button("🗑️ إزالة هذا السجل نهائياً من شيت الأطفال", key="btn_del_child"):
+                        if child_to_delete:
+                            updated_df_child = df_child[df_child["الرقم القومى للام"] != child_to_delete]
+                            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+                            all_dfs["سجل المشورة للاطفال"] = updated_df_child
+                            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                                for s, df in all_dfs.items():
+                                    df.to_excel(writer, sheet_name=s, index=False)
+                            st.success("تم حذف السجل بنجاح! جاري التحديث...")
+                            st.rerun()
+                        else:
+                            st.warning("الرجاء اختيار سجل أولاً للحذف.")
             else:
                 st.info("لا توجد بيانات مسجلة للأطفال حتى الآن.")
     else:
