@@ -431,31 +431,27 @@ elif menu == "سجل الحوامل":
             is_in_auto_range = False
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
-        nat_id_val = form_data.get("الرقم القومى", "")
-        if not nat_id_val or len(nat_id_val) != 14:
-            st.error("برجاء إدخال رقم قومي صحيح مكون من 14 رقماً!")
+        form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        form_data["اسم المستخدم"] = st.session_state.name
+        
+        new_df = pd.DataFrame([form_data], dtype=str)
+        excel = pd.ExcelFile(EXCEL_FILE)
+        all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+        
+        for col in PREGNANT_COLUMNS:
+            if col not in new_df.columns:
+                new_df[col] = ""
+        new_df = new_df[PREGNANT_COLUMNS]
+
+        if "المشورة الاسرية للحامل" in all_dfs:
+            all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
         else:
-            form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            form_data["اسم المستخدم"] = st.session_state.name
-            
-            new_df = pd.DataFrame([form_data], dtype=str)
-            excel = pd.ExcelFile(EXCEL_FILE)
-            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            
-            for col in PREGNANT_COLUMNS:
-                if col not in new_df.columns:
-                    new_df[col] = ""
-            new_df = new_df[PREGNANT_COLUMNS]
+            all_dfs["المشورة الاسرية للحامل"] = new_df
 
-            if "المشورة الاسرية للحامل" in all_dfs:
-                all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
-            else:
-                all_dfs["المشورة الاسرية للحامل"] = new_df
-
-            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                for s, df in all_dfs.items():
-                    df.to_excel(writer, sheet_name=s, index=False)
-            st.success("تم حفظ بيانات الحامل بنجاح! ✨")
+        with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+            for s, df in all_dfs.items():
+                df.to_excel(writer, sheet_name=s, index=False)
+        st.success("تم حفظ بيانات الحامل بنجاح! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
@@ -470,7 +466,7 @@ elif menu == "سجل الأطفال":
             else:
                 st.session_state[f"c_{col}"] = ""
 
-    nat_id_mom_input = st.text_input("الرقم القومى للام", max_chars=14, key="c_الرقم القومى للام")
+    nat_id_mom_input = st.text_input("الرقم القومى للام (اختياري)", max_chars=14, key="c_الرقم القومى للام")
     
     if nat_id_mom_input and len(nat_id_mom_input) == 14:
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
@@ -599,7 +595,7 @@ elif menu == "سجل الأطفال":
                 
         else:
             if col_name == "تاريخ ميلاد الام":
-                form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً من الرقم القومي للأم]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]", key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
                 default_date_val = datetime.date.today()
@@ -723,59 +719,56 @@ elif menu == "سجل الأطفال":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
-        if not nat_id_mom_input or len(nat_id_mom_input) != 14:
-            st.error("برجاء إدخال الرقم القومي للأم صحيحاً مكوناً من 14 رقماً!")
+        form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        form_data["اسم المستخدم"] = st.session_state.name
+        form_data["الرقم القومى للام"] = nat_id_mom_input
+        
+        new_df = pd.DataFrame([form_data], dtype=str)
+        
+        for col in CHILD_COLUMNS:
+            if col not in new_df.columns:
+                new_df[col] = ""
+        new_df = new_df[CHILD_COLUMNS]
+
+        excel = pd.ExcelFile(EXCEL_FILE)
+        all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
+        
+        if "سجل المشورة للاطفال" in all_dfs:
+            all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
         else:
-            form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            form_data["اسم المستخدم"] = st.session_state.name
-            form_data["الرقم القومى للام"] = nat_id_mom_input
-            
-            new_df = pd.DataFrame([form_data], dtype=str)
-            
-            for col in CHILD_COLUMNS:
-                if col not in new_df.columns:
-                    new_df[col] = ""
-            new_df = new_df[CHILD_COLUMNS]
+            all_dfs["سجل المشورة للاطفال"] = new_df
 
-            excel = pd.ExcelFile(EXCEL_FILE)
-            all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            
-            if "سجل المشورة للاطفال" in all_dfs:
-                all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
-            else:
-                all_dfs["سجل المشورة للاطفال"] = new_df
+        with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+            for s, df in all_dfs.items():
+                df.to_excel(writer, sheet_name=s, index=False)
+        
+        # تأثير تطاير القلوب الكثيرة والقلب الكبير باسم د. شيماء
+        hearts_html = ""
+        import random
+        for _ in range(35):
+            left_pos = random.randint(0, 95)
+            anim_dur = random.uniform(1.5, 3.0)
+            delay = random.uniform(0, 0.5)
+            size = random.randint(18, 38)
+            hearts_html += f'<div class="f-heart" style="left: {left_pos}vw; font-size: {size}px; animation-duration: {anim_dur}s; animation-delay: {delay}s;">❤️</div>'
 
-            with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                for s, df in all_dfs.items():
-                    df.to_excel(writer, sheet_name=s, index=False)
-            
-            # تأثير تطاير القلوب الكثيرة والقلب الكبير باسم د. شيماء
-            hearts_html = ""
-            import random
-            for _ in range(35):
-                left_pos = random.randint(0, 95)
-                anim_dur = random.uniform(1.5, 3.0)
-                delay = random.uniform(0, 0.5)
-                size = random.randint(18, 38)
-                hearts_html += f'<div class="f-heart" style="left: {left_pos}vw; font-size: {size}px; animation-duration: {anim_dur}s; animation-delay: {delay}s;">❤️</div>'
-
-            st.markdown(f"""
-                <div class="floating-hearts-overlay">
-                    {hearts_html}
+        st.markdown(f"""
+            <div class="floating-hearts-overlay">
+                {hearts_html}
+            </div>
+            <div class="big-heart-container">
+                <div class="big-heart">
+                    <div class="heart-text">د. شيماء</div>
                 </div>
-                <div class="big-heart-container">
-                    <div class="big-heart">
-                        <div class="heart-text">د. شيماء</div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            st.success("تم حفظ بيانات الطفل بنجاح! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
-            
-            import time
-            time.sleep(3)
-            clear_child_form()
-            st.rerun()
+            </div>
+        """, unsafe_allow_html=True)
+        
+        st.success("تم حفظ بيانات الطفل بنجاح! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
+        
+        import time
+        time.sleep(3)
+        clear_child_form()
+        st.rerun()
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
@@ -799,21 +792,21 @@ elif menu == "استعراض البيانات والداشبورد":
         with tab1:
             st.subheader("بيانات الحوامل المسجلة")
             if not df_preg.empty:
-                search_p = st.text_input("بحث بالاسم أو الرقم القومي للحامل", key="search_preg")
+                search_p = st.text_input("بحث بالاسم أو أي بيانات للحامل", key="search_preg")
                 if search_p:
                     filtered_preg = df_preg[df_preg.astype(str).apply(lambda x: x.str.contains(search_p, case=False)).any(axis=1)]
                 else:
                     filtered_preg = df_preg
-                st.dataframe(filtered_preg, use_container_width=True)
                 
-                # زر الإزالة الخاص بالآدمن فقط في شيت الحوامل
+                # لوحة التحكم الخاصة بالحذف (أصبحت في الأعلى فوق الجدول مباشرة)
                 if st.session_state.role == "admin":
-                    st.markdown("---")
-                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل للحامل")
-                    preg_to_delete = st.selectbox("اختر رقم الحامل القومي / أو اسم للذف", options=[""] + list(filtered_preg["الرقم القومى"].dropna().unique()), key="del_preg_select")
-                    if st.button("🗑️ إزالة هذا السجل نهائياً من شيت الحوامل", key="btn_del_preg"):
-                        if preg_to_delete:
-                            updated_df_preg = df_preg[df_preg["الرقم القومى"] != preg_to_delete]
+                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل للحامل برقم الصف")
+                    row_indices_p = list(filtered_preg.index)
+                    row_to_delete_p = st.selectbox("اختر رقم الصف (Index) المراد حذفه نهائياً", options=[-1] + row_indices_p, format_func=lambda x: "اختر رقم الصف..." if x == -1 else f"صف رقم: {x} (الاسم: {filtered_preg.loc[x, 'الاسم'] if 'الاسم' in filtered_preg.columns and pd.notna(filtered_preg.loc[x, 'الاسم']) else 'غير متوفر'})", key="del_preg_index_select")
+                    
+                    if st.button("🗑️ إزالة السجل المحدد برقم الصف من شيت الحوامل", key="btn_del_preg_idx"):
+                        if row_to_delete_p != -1:
+                            updated_df_preg = df_preg.drop(index=row_to_delete_p).reset_index(drop=True)
                             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
                             all_dfs["المشورة الاسرية للحامل"] = updated_df_preg
                             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
@@ -822,28 +815,34 @@ elif menu == "استعراض البيانات والداشبورد":
                             st.success("تم حذف السجل بنجاح! جاري التحديث...")
                             st.rerun()
                         else:
-                            st.warning("الرجاء اختيار سجل أولاً للحذف.")
+                            st.warning("الرجاء اختيار رقم صف صحيح للحذف.")
+                    st.markdown("---")
+
+                # عرض الجدول مضافاً إليه رقم الصف (Index)
+                display_df_preg = filtered_preg.copy()
+                display_df_preg.insert(0, "رقم الصف", display_df_preg.index)
+                st.dataframe(display_df_preg, use_container_width=True)
             else:
                 st.info("لا توجد بيانات مسجلة للحوامل حتى الآن.")
                 
         with tab2:
             st.subheader("بيانات الأطفال المسجلة")
             if not df_child.empty:
-                search_c = st.text_input("بحث باسم الطفل أو الرقم القومي للأم", key="search_child")
+                search_c = st.text_input("بحث باسم الطفل أو الأم أو أي بيانات", key="search_child")
                 if search_c:
                     filtered_child = df_child[df_child.astype(str).apply(lambda x: x.str.contains(search_c, case=False)).any(axis=1)]
                 else:
                     filtered_child = df_child
-                st.dataframe(filtered_child, use_container_width=True)
                 
-                # زر الإزالة الخاص بالآدمن فقط في شيت الأطفال
+                # لوحة التحكم الخاصة بالحذف (أصبحت في الأعلى فوق الجدول مباشرة)
                 if st.session_state.role == "admin":
-                    st.markdown("---")
-                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل لطفل")
-                    child_to_delete = st.selectbox("اختر الرقم القومي للأم المرتبط بسجل الطفل للحذف", options=[""] + list(filtered_child["الرقم القومى للام"].dropna().unique()), key="del_child_select")
-                    if st.button("🗑️ إزالة هذا السجل نهائياً من شيت الأطفال", key="btn_del_child"):
-                        if child_to_delete:
-                            updated_df_child = df_child[df_child["الرقم القومى للام"] != child_to_delete]
+                    st.markdown("### ⚙️ لوحة تحكم الآدمن: حذف سجل لطفل برقم الصف")
+                    row_indices_c = list(filtered_child.index)
+                    row_to_delete_c = st.selectbox("اختر رقم الصف (Index) المراد حذفه نهائياً", options=[-1] + row_indices_c, format_func=lambda x: "اختر رقم الصف..." if x == -1 else f"صف رقم: {x} (طفل: {filtered_child.loc[x, 'اسم الطفل'] if 'اسم الطفل' in filtered_child.columns and pd.notna(filtered_child.loc[x, 'اسم الطفل']) else 'غير متوفر'} - أم: {filtered_child.loc[x, 'اسم الام'] if 'اسم الام' in filtered_child.columns and pd.notna(filtered_child.loc[x, 'اسم الام']) else 'غير متوفر'})", key="del_child_index_select")
+                    
+                    if st.button("🗑️ إزالة السجل المحدد برقم الصف من شيت الأطفال", key="btn_del_child_idx"):
+                        if row_to_delete_c != -1:
+                            updated_df_child = df_child.drop(index=row_to_delete_c).reset_index(drop=True)
                             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
                             all_dfs["سجل المشورة للاطفال"] = updated_df_child
                             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
@@ -852,7 +851,13 @@ elif menu == "استعراض البيانات والداشبورد":
                             st.success("تم حذف السجل بنجاح! جاري التحديث...")
                             st.rerun()
                         else:
-                            st.warning("الرجاء اختيار سجل أولاً للحذف.")
+                            st.warning("الرجاء اختيار رقم صف صحيح للحذف.")
+                    st.markdown("---")
+
+                # عرض الجدول مضافاً إليه رقم الصف (Index)
+                display_df_child = filtered_child.copy()
+                display_df_child.insert(0, "رقم الصف", display_df_child.index)
+                st.dataframe(display_df_child, use_container_width=True)
             else:
                 st.info("لا توجد بيانات مسجلة للأطفال حتى الآن.")
     else:
