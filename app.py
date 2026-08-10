@@ -336,7 +336,7 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.rerun()
 
 st.markdown("---")
-col_mobile_nav, col_mobile_logout = st.columns([3, 1])
+col_mobile_nav, col_mobile_logout = st.columns([3, 1]) مفضل
 with col_mobile_nav:
     main_screen_menu = st.selectbox("📱 انتقل مباشرة إلى القسم المطلوب:", menu_options, key="mobile_selectbox")
 with col_mobile_logout:
@@ -358,7 +358,7 @@ def clear_child_form():
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال مع الحسابات التلقائية وتطاير القلوب عند الحفظ.")
+    st.write("النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال وحفظها مباشرة في ملف الإكسل والداشبورد.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -441,7 +441,18 @@ elif menu == "سجل الحوامل":
             new_df = pd.DataFrame([form_data], dtype=str)
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True) if "المشورة الاسرية للحامل" in all_dfs else new_df
+            
+            # التأكد من عدم تكرار الأعمدة تماماً وتوحيد الشكل
+            for col in PREGNANT_COLUMNS:
+                if col not in new_df.columns:
+                    new_df[col] = ""
+            new_df = new_df[PREGNANT_COLUMNS]
+
+            if "المشورة الاسرية للحامل" in all_dfs:
+                all_dfs["المشورة الاسرية للحامل"] = pd.concat([all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True)
+            else:
+                all_dfs["المشورة الاسرية للحامل"] = new_df
+
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
@@ -721,14 +732,26 @@ elif menu == "سجل الأطفال":
             form_data["الرقم القومى للام"] = nat_id_mom_input
             
             new_df = pd.DataFrame([form_data], dtype=str)
+            
+            # التأكد من تطابق الأعمدة تماماً مع جدول الأطفال المعتمد
+            for col in CHILD_COLUMNS:
+                if col not in new_df.columns:
+                    new_df[col] = ""
+            new_df = new_df[CHILD_COLUMNS]
+
             excel = pd.ExcelFile(EXCEL_FILE)
             all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
-            all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True) if "سجل المشورة للاطفال" in all_dfs else new_df
+            
+            if "سجل المشورة للاطفال" in all_dfs:
+                all_dfs["سجل المشورة للاطفال"] = pd.concat([all_dfs["سجل المشورة للاطفال"], new_df], ignore_index=True)
+            else:
+                all_dfs["سجل المشورة للاطفال"] = new_df
+
             with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
                 for s, df in all_dfs.items():
                     df.to_excel(writer, sheet_name=s, index=False)
             
-            # كود توليد قلوب كثيرة متطايرة لمدة 3 ثواني مع القلب الكبير باسم د. شيماء
+            # تأثير تطاير القلوب الكثيرة والقلب الكبير باسم د. شيماء
             hearts_html = ""
             import random
             for _ in range(35):
@@ -751,7 +774,6 @@ elif menu == "سجل الأطفال":
             
             st.success("تم حفظ بيانات الطفل بنجاح! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
             
-            # تفريغ الحقول وإعادة التحميل بعد 3 ثواني
             import time
             time.sleep(3)
             clear_child_form()
