@@ -137,7 +137,7 @@ DROPDOWN_OPTIONS = {
     "موقف استخدام الوسيلة": ["توجد", "لا يوجد", "مرغوب", "غير مرغوب", "حدث", "لم يحدث"],
     "الحمل الجديد": ["مرغوب", "غير مرغوب"],
     "الخدمات الغير ملباه": ["يوجد", "لا يوجد"],
-    "النمو والتطور الحركى": ["طبيعي", "متقدم", "متأخر", "يحتاج متابعة", "تم التوعية"],
+    "النمو والتطور الحركى": ["طبيعي", "متقدم", "متأخر"],
     "التطور الادراكى والمعرفى": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
     "التطور اللغوى": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
     "رسائل التربية الايجابية": ["طبيعي", "متأخر", "يحتاج متابعة", "تم التوعية"],
@@ -187,7 +187,6 @@ CHILD_COLUMNS = [
 ]
 
 def parse_national_id(nat_id):
-    """استخراج تاريخ الميلاد والعمر من الرقم القومي المصري (14 رقم)"""
     if nat_id and len(nat_id) == 14 and nat_id.isdigit():
         century_code = int(nat_id[0])
         year_digits = int(nat_id[1:3])
@@ -381,7 +380,6 @@ elif menu == "سجل الأطفال":
 
     nat_id_mom_input = st.text_input("الرقم القومى للام", max_chars=14, key="c_الرقم القومى للام")
     
-    # التوليد التلقائي لتاريخ ميلاد الأم من الرقم القومي للأم
     if nat_id_mom_input and len(nat_id_mom_input) == 14:
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
         if b_date_mom and not st.session_state.get("c_تاريخ ميلاد الام"):
@@ -416,94 +414,112 @@ elif menu == "سجل الأطفال":
                 try:
                     age_str = st.session_state.get("c_العمر الحالى للطفل", "")
                     if age_str:
-                        age_num = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_str)) or 0)
-                        if age_num < 0.25:
+                        if "يوم" in age_str or "أسبوع" in age_str:
                             auto_visit_choice = "الاسبوع الاول"
-                        elif age_num <= 2:
-                            auto_visit_choice = "عمر شهرين"
-                        elif age_num <= 4:
-                            auto_visit_choice = "عمر 4 شهور"
-                        elif age_num <= 6:
-                            auto_visit_choice = "عمر 6 شهور"
-                        elif age_num <= 9:
-                            auto_visit_choice = "عمر 9 شهور"
-                        elif age_num <= 12:
-                            auto_visit_choice = "عمر 12 شهر"
-                        elif age_num <= 18:
-                            auto_visit_choice = "عمر 18 شهر"
-                        elif age_num <= 24:
-                            auto_visit_choice = "عمر سنتين"
-                        elif age_num <= 30:
-                            auto_visit_choice = "عمر سنتين ونصف"
-                        elif age_num <= 36:
-                            auto_visit_choice = "عمر 3 سنين"
-                        elif age_num <= 42:
-                            auto_visit_choice = "عمر 3 سنين ونصف"
-                        elif age_num <= 48:
-                            auto_visit_choice = "عمر 4 سنين"
-                        elif age_num <= 54:
-                            auto_visit_choice = "عمر 4 سنين ونصف"
-                        elif age_num <= 60:
-                            auto_visit_choice = "عمر 5 سنين"
-                        elif age_num <= 66:
-                            auto_visit_choice = "عمر 5 سنين ونصف"
                         else:
-                            auto_visit_choice = "عمر 6 سنين"
+                            age_num = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_str)) or 0)
+                            if age_num <= 2:
+                                auto_visit_choice = "عمر شهرين"
+                            elif age_num <= 4:
+                                auto_visit_choice = "عمر 4 شهور"
+                            elif age_num <= 6:
+                                auto_visit_choice = "عمر 6 شهور"
+                            elif age_num <= 9:
+                                auto_visit_choice = "عمر 9 شهور"
+                            elif age_num <= 12:
+                                auto_visit_choice = "عمر 12 شهر"
+                            elif age_num <= 18:
+                                auto_visit_choice = "عمر 18 شهر"
+                            elif age_num <= 24:
+                                auto_visit_choice = "عمر سنتين"
+                            elif age_num <= 30:
+                                auto_visit_choice = "عمر سنتين ونصف"
+                            elif age_num <= 36:
+                                auto_visit_choice = "عمر 3 سنين"
+                            elif age_num <= 42:
+                                auto_visit_choice = "عمر 3 سنين ونصف"
+                            elif age_num <= 48:
+                                auto_visit_choice = "عمر 4 سنين"
+                            elif age_num <= 54:
+                                auto_visit_choice = "عمر 4 سنين ونصف"
+                            elif age_num <= 60:
+                                auto_visit_choice = "عمر 5 سنين"
+                            elif age_num <= 66:
+                                auto_visit_choice = "عمر 5 سنين ونصف"
+                            else:
+                                auto_visit_choice = "عمر 6 سنين"
                 except Exception:
                     pass
                 
-                if not st.session_state.get(f"c_{col_name}"):
-                    st.session_state[f"c_{col_name}"] = auto_visit_choice
+                st.session_state[f"c_{col_name}"] = auto_visit_choice
 
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
             
-            # إذا كان الحقل هو التطور الحركي، نجعله يعتمد على الحساب التلقائي مع إمكانية التعديل
             if col_name == "النمو والتطور الحركى":
-                auto_m = "طبيعي"
+                options_growth = ["طبيعي", "متقدم", "متأخر"]
                 try:
-                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
-                    w_curr = st.session_state.get("c_الوزن الحالى", "0")
-                    if age_s and w_curr:
-                        am = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
-                        cw = float(''.join(filter(lambda x: x.isdigit() or x=='.', w_curr)) or 0)
-                        # حساب الوزن المتوقع تقريبياً حسب العمر بالأشهر
-                        exp_w = 3.2 + (am * 0.5) if am <= 12 else 10 + ((am - 12) * 0.2)
-                        if cw > (exp_w * 1.2):
-                            auto_m = "متقدم"
-                        elif cw < (exp_w * 0.75):
-                            auto_m = "متأخر"
-                        else:
-                            auto_m = "طبيعي"
+                    w_birth_val = float(st.session_state.get("c_وزن الطفل عند الولادة", 3.0) or 3.0)
+                    w_curr_val = float(st.session_state.get("c_الوزن الحالى", w_birth_val) or w_birth_val)
+                    
+                    age_raw = st.session_state.get("c_العمر الحالى للطفل", "0")
+                    if "يوم" in age_raw or "أسبوع" in age_raw:
+                        age_in_months = 0.5
+                    else:
+                        age_in_months = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_raw)) or 0)
+                    
+                    expected_weight = 3.2 + (age_in_months * 0.5) if age_in_months <= 12 else 10 + ((age_in_months - 12) * 0.2)
+                    ratio = w_curr_val / expected_weight if expected_weight > 0 else 1.0
+                    
+                    if ratio < 0.8:
+                        auto_m = "متأخر"
+                    elif ratio > 1.2:
+                        auto_m = "متقدم"
+                    else:
+                        auto_m = "طبيعي"
                 except Exception:
-                    pass
-                m_idx = options.index(auto_m) if auto_m in options else 0
-                form_data[col_name] = st.selectbox(f"{col_name} [محسوب تلقائياً من الوزن والعمر]", options, index=m_idx, key=f"c_{col_name}")
+                    auto_m = "طبيعي"
+                
+                m_idx = options_growth.index(auto_m) if auto_m in options_growth else 0
+                form_data[col_name] = st.selectbox(f"{col_name} [محسوب تلقائياً من الوزن والعمر - المعايير العالمية]", options_growth, index=m_idx, key=f"c_{col_name}")
             else:
                 form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
-            
+                
         else:
             if col_name == "تاريخ ميلاد الام":
                 form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً من الرقم القومي للأم]", key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [أدخل تاريخ الميلاد لتوليد العمر والعمر الرحمي]", key=f"c_{col_name}")
+                form_data[col_name] = str(st.date_input(col_name, key=f"c_{col_name}"))
                 try:
                     if form_data[col_name]:
                         b_date_obj = datetime.datetime.strptime(form_data[col_name].strip(), "%Y-%m-%d").date()
                         today_date = datetime.date.today()
-                        diff_days = (today_date - b_date_obj).days
-                        if diff_days >= 0:
-                            st.session_state["c_العمر الحالى للطفل"] = str(round(diff_days / 30.44, 1)) + " شهر"
-                            st.session_state["c_العمر الرحمى للطفل"] = str(max(37, round(40 - (diff_days / 7)))) + " أسبوع"
+                        delta_days = (today_date - b_date_obj).days
+                        
+                        if delta_days >= 0:
+                            if delta_days < 7:
+                                age_display = f"{delta_days} يوم"
+                            elif delta_days < 30:
+                                weeks_count = round(delta_days / 7)
+                                age_display = f"{weeks_count} أسبوع"
+                            else:
+                                months_count = round(delta_days / 30.44, 1)
+                                if months_count.is_integer():
+                                    months_count = int(months_count)
+                                age_display = f"{months_count} شهر"
+                            st.session_state["c_العمر الحالى للطفل"] = age_display
+                            
+                            gestational_weeks = max(24, 40 - round(delta_days / 7))
+                            st.session_state["c_العمر الرحمى للطفل"] = f"{gestational_weeks} أسبوع"
                 except Exception:
                     pass
 
             elif col_name == "العمر الحالى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً من تاريخ الميلاد]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
                 
             elif col_name == "العمر الرحمى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً من تاريخ الميلاد]", key=f"c_{col_name}")
+                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
 
             elif col_name == "وزن الطفل عند الولادة":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
@@ -552,18 +568,20 @@ elif menu == "سجل الأطفال":
                 except Exception:
                     pass
                 
-                if calc_next_visit_date and not st.session_state.get(f"c_{col_name}"):
-                    st.session_state[f"c_{col_name}"] = calc_next_visit_date
-                    
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً بناءً على الموعد القادم]", key=f"c_{col_name}")
+                st.session_state[f"c_{col_name}"] = calc_next_visit_date
+                form_data[col_name] = st.text_input(f"{col_name} [تاريخ الزيارة التالية بناءً على موعد الزيارة القادم]", key=f"c_{col_name}")
 
             elif col_name == "الطول الحالى":
                 form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
                 try:
-                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0").replace(" شهر", "")
+                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0")
                     w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
                     if age_s and w_curr and form_data[col_name]:
-                        age_m = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
+                        if "يوم" in age_s or "أسبوع" in age_s:
+                            age_m = 0.5
+                        else:
+                            age_m = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
+                        
                         weight_kg = float(''.join(filter(lambda x: x.isdigit() or x=='.', w_curr)) or 0)
                         length_cm = float(''.join(filter(lambda x: x.isdigit() or x=='.', form_data[col_name])) or 0)
                         if age_m <= 3:
@@ -609,50 +627,51 @@ elif menu == "استعراض البيانات والداشبورد":
         df_preg = pd.read_excel(excel, sheet_name="المشورة الاسرية للحامل", dtype=str) if "المشورة الاسرية للحامل" in excel.sheet_names else pd.DataFrame(columns=PREGNANT_COLUMNS)
         df_child = pd.read_excel(excel, sheet_name="سجل المشورة للاطفال", dtype=str) if "سجل المشورة للاطفال" in excel.sheet_names else pd.DataFrame(columns=CHILD_COLUMNS)
         
-        st.markdown("### 🔍 تصفية الحالات حسب الفترة الزمنية")
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            start_date = st.date_input("من تاريخ", datetime.date.today() - datetime.timedelta(days=30))
-        with col_f2:
-            end_date = st.date_input("إلى تاريخ", datetime.date.today())
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.metric(label="🤰 إجمالي سجلات الحوامل المسجلة", value=len(df_preg))
+        with col_m2:
+            st.metric(label="👶 إجمالي سجلات الأطفال المسجلة", value=len(df_child))
             
-        def filter_by_date(df, date_col):
-            if df.empty or date_col not in df.columns:
-                return df
-            try:
-                df_filtered = df.copy()
-                df_filtered['temp_date'] = pd.to_datetime(df_filtered[date_col], errors='coerce').dt.date
-                mask = (df_filtered['temp_date'] >= start_date) & (df_filtered['temp_date'] <= end_date)
-                return df_filtered[mask].drop(columns=['temp_date'])
-            except Exception:
-                return df
-
-        df_preg_filtered = filter_by_date(df_preg, "تاريخ التسجيل")
-        df_child_filtered = filter_by_date(df_child, "تاريخ التسجيل")
-        
-        c1, c2 = st.columns(2)
-        c1.metric("إجمالي الحوامل المسجلات بالفترة", len(df_preg_filtered))
-        c2.metric("إجمالي الأطفال المسجلين بالفترة", len(df_child_filtered))
-        
         st.markdown("---")
-        st.markdown("### 🤰 سجل الحوامل المسجل")
-        st.dataframe(df_preg_filtered, use_container_width=True)
+        tab1, tab2 = st.tabs(["🤰 جدول الحوامل", "👶 جدول الأطفال"])
         
-        st.markdown("### 👶 سجل الأطفال المسجل")
-        st.dataframe(df_child_filtered, use_container_width=True)
+        with tab1:
+            st.subheader("بيانات الحوامل المسجلة")
+            if not df_preg.empty:
+                search_p = st.text_input("بحث بالاسم أو الرقم القومي للحامل", key="search_preg")
+                if search_p:
+                    filtered_preg = df_preg[df_preg.astype(str).apply(lambda x: x.str.contains(search_p, case=False)).any(axis=1)]
+                else:
+                    filtered_preg = df_preg
+                st.dataframe(filtered_preg, use_container_width=True)
+            else:
+                st.info("لا توجد بيانات مسجلة للحوامل حتى الآن.")
+                
+        with tab2:
+            st.subheader("بيانات الأطفال المسجلة")
+            if not df_child.empty:
+                search_c = st.text_input("بحث باسم الطفل أو الرقم القومي للأم", key="search_child")
+                if search_c:
+                    filtered_child = df_child[df_child.astype(str).apply(lambda x: x.str.contains(search_c, case=False)).any(axis=1)]
+                else:
+                    filtered_child = df_child
+                st.dataframe(filtered_child, use_container_width=True)
+            else:
+                st.info("لا توجد بيانات مسجلة للأطفال حتى الآن.")
     else:
-        st.info("لا توجد بيانات مسجلة حتى الآن.")
+        st.warning("لم يتم العثور على ملف البيانات.")
 
-# ==================== 5. إدارة المستخدمين ====================
+# ==================== 5. إدارة المستخدمين (للآدمن فقط) ====================
 elif menu == "إدارة المستخدمين":
     if st.session_state.role == "admin":
-        st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
-        st.write("الحسابات الحالية المسجلة في النظام:")
+        st.markdown("<h2>⚙️ لوحة إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
+        st.write("يمكنك الاطلاع على حسابات الطبيبات المسجلات في النظام:")
         
-        users_df = pd.DataFrame([
-            {"اسم المستخدم": k, "الاسم الظاهر": v["name"], "الصلاحية": v["role"]} 
+        user_df = pd.DataFrame([
+            {"اسم المستخدم": k, "الاسم بالكامل": v["name"], "الدور": v["role"]}
             for k, v in DEFAULT_USERS.items()
         ])
-        st.dataframe(users_df, use_container_width=True)
+        st.dataframe(user_df, use_container_width=True)
     else:
-        st.error("عذراً، هذه الصفحة مخصصة للمدير (Admin) فقط!")
+        st.error("عذراً، هذه الصفحة مخصصة للمدير (Admin) فقط.")
