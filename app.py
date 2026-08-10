@@ -347,11 +347,12 @@ with col_mobile_logout:
 menu = main_screen_menu
 st.markdown("---")
 
-# ==================== دالة تفريغ الحقول لسجل الأطفال ====================
+# ==================== دالة تفريغ الحقول لسجل الأطفال (النسخة الآمنة) ====================
 def clear_child_form():
     for col in CHILD_COLUMNS:
-        if f"c_{col}" in st.session_state:
-            st.session_state[f"c_{col}"] = ""
+        session_key = f"c_{col}"
+        if session_key in st.session_state:
+            del st.session_state[session_key]
     st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
     st.session_state["c_الخدمات الغير ملباه"] = "لا يوجد"
 
@@ -484,14 +485,11 @@ elif menu == "سجل الأطفال":
                     st.session_state[f"c_{c_name}"] = str(val)
             st.rerun()
 
-    form_data = {}
-    
     for col_name in CHILD_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
             continue
             
         if col_name == "الرقم القومى للام":
-            form_data[col_name] = nat_id_mom_input
             continue
 
         if col_name in DROPDOWN_OPTIONS:
@@ -583,25 +581,24 @@ elif menu == "سجل الأطفال":
                 current_val = st.session_state.get(f"c_{col_name}", auto_m)
                 m_idx = options_growth.index(current_val) if current_val in options_growth else options_growth.index(auto_m)
                 
-                form_data[col_name] = st.selectbox(
+                st.selectbox(
                     f"{col_name} [مقارنة بالمعدل الطبيعي للعمر - قابل للتعديل الفوري]", 
                     options_growth, 
                     index=m_idx, 
                     key=f"c_{col_name}"
                 )
             else:
-                # الحقول الخاصة برسائل التربية الإيجابية وحتى التوعية عن التغذية التكميلية (تم / لم يتم) وباقي الحقول
                 if col_name in ["رسائل التربية الايجابية", "الانشطة التحفيزية", "التوعية عن التغذية التكميلية وسلامة الغذاء"]:
                     options_status = ["تم", "لم يتم"]
                     current_status = st.session_state.get(f"c_{col_name}", "تم")
                     s_idx = options_status.index(current_status) if current_status in options_status else 0
-                    form_data[col_name] = st.selectbox(col_name, options_status, index=s_idx, key=f"c_{col_name}")
+                    st.selectbox(col_name, options_status, index=s_idx, key=f"c_{col_name}")
                 else:
-                    form_data[col_name] = st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
+                    st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
                 
         else:
             if col_name == "تاريخ ميلاد الام":
-                form_data[col_name] = st.text_input(f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]", key=f"c_{col_name}")
                 
             elif col_name == "تاريخ ميلاد الطفل":
                 default_date_val = datetime.date.today()
@@ -613,11 +610,10 @@ elif menu == "سجل الأطفال":
                         pass
                 
                 chosen_date = st.date_input(col_name, value=default_date_val, key=f"c_date_input_{col_name}")
-                form_data[col_name] = str(chosen_date)
-                st.session_state[f"c_{col_name}"] = form_data[col_name]
+                st.session_state[f"c_{col_name}"] = str(chosen_date)
                 
                 try:
-                    if form_data[col_name]:
+                    if st.session_state[f"c_{col_name}"]:
                         today_date = datetime.date.today()
                         delta_days = (today_date - chosen_date).days
                         
@@ -640,30 +636,31 @@ elif menu == "سجل الأطفال":
                     pass
 
             elif col_name == "العمر الحالى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
                 
             elif col_name == "العمر الرحمى للطفل":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]", key=f"c_{col_name}")
 
             elif col_name == "وزن الطفل عند الولادة":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                st.text_input(col_name, key=f"c_{col_name}")
                 
             elif col_name == "طول الطفل عند الولادة":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                st.text_input(col_name, key=f"c_{col_name}")
                 try:
                     w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
-                    if w_val and form_data[col_name]:
-                        st.session_state["c_مقاس راس الطفل عند الولادة"] = str(round((float(form_data[col_name]) / 2) + (float(w_val) * 0.5) + 10, 1))
+                    l_val = st.session_state.get("c_طول الطفل عند الولادة", "50.0")
+                    if w_val and l_val:
+                        st.session_state["c_مقاس راس الطفل عند الولادة"] = str(round((float(l_val) / 2) + (float(w_val) * 0.5) + 10, 1))
                 except ValueError:
                     pass
 
             elif col_name == "مقاس راس الطفل عند الولادة":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
 
             elif col_name == "تاريخ الزيارة":
                 if not st.session_state.get(f"c_{col_name}"):
                     st.session_state[f"c_{col_name}"] = datetime.date.today().strftime("%Y-%m-%d")
-                form_data[col_name] = st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"c_{col_name}")
 
             elif col_name == "تخطيط الزيارة القادمة":
                 calc_next_visit_date = ""
@@ -693,21 +690,22 @@ elif menu == "سجل الأطفال":
                     pass
                 
                 st.session_state[f"c_{col_name}"] = calc_next_visit_date
-                form_data[col_name] = st.text_input(f"{col_name} [تاريخ الزيارة التالية بناءً على موعد الزيارة القادم]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [تاريخ الزيارة التالية بناءً على موعد الزيارة القادم]", key=f"c_{col_name}")
 
             elif col_name == "الطول الحالى":
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                st.text_input(col_name, key=f"c_{col_name}")
                 try:
                     age_s = st.session_state.get("c_العمر الحالى للطفل", "0")
                     w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
-                    if age_s and w_curr and form_data[col_name]:
+                    h_curr = st.session_state.get("c_الطول الحالى", "50.0")
+                    if age_s and w_curr and h_curr:
                         if "يوم" in age_s or "أسبوع" in age_s:
                             age_m = 0.5
                         else:
                             age_m = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_s)) or 0)
                         
                         weight_kg = float(''.join(filter(lambda x: x.isdigit() or x=='.', w_curr)) or 0)
-                        length_cm = float(''.join(filter(lambda x: x.isdigit() or x=='.', form_data[col_name])) or 0)
+                        length_cm = float(''.join(filter(lambda x: x.isdigit() or x=='.', h_curr)) or 0)
                         if age_m <= 3:
                             base_h = 35 + (age_m * 1.8)
                         elif age_m <= 12:
@@ -719,15 +717,23 @@ elif menu == "سجل الأطفال":
                     pass
 
             elif col_name == "محيط الراس الحالى":
-                form_data[col_name] = st.text_input(f"{col_name} [محسوب بالمعايير العالمية]", key=f"c_{col_name}")
+                st.text_input(f"{col_name} [محسوب بالمعايير العالمية]", key=f"c_{col_name}")
 
             else:
-                form_data[col_name] = st.text_input(col_name, key=f"c_{col_name}")
+                st.text_input(col_name, key=f"c_{col_name}")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
-        form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        form_data["اسم المستخدم"] = st.session_state.name
-        form_data["الرقم القومى للام"] = nat_id_mom_input
+        # جمع البيانات من session_state مباشرة لحفظها بدقة وسليمة
+        form_data = {}
+        for col in CHILD_COLUMNS:
+            if col == "تاريخ التسجيل":
+                form_data[col] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            elif col == "اسم المستخدم":
+                form_data[col] = st.session_state.name
+            elif col == "الرقم القومى للام":
+                form_data[col] = nat_id_mom_input
+            else:
+                form_data[col] = st.session_state.get(f"c_{col}", "")
         
         new_df = pd.DataFrame([form_data], dtype=str)
         
