@@ -500,12 +500,10 @@ elif menu == "سجل الأطفال":
                     st.session_state[f"c_{c_name}"] = str(val)
             st.rerun()
 
-    # Form inputs mapped directly to CHILD_COLUMNS
     for col_name in CHILD_COLUMNS:
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
             continue
             
-        # Mapping alternative/similar names to DROPDOWN_OPTIONS keys if needed
         opt_key = col_name
         if col_name == "الوظيفة للام":
             opt_key = "وظيفة الام"
@@ -887,7 +885,7 @@ elif menu == "استعراض البيانات والداشبورد":
 
                 display_df_child = filtered_child.copy()
                 display_df_child.insert(0, "رقم الصف", display_df_child.index)
-                st.dataframe(display_df_child, use_container_width.True)
+                st.dataframe(display_df_child, use_container_width=True)  # <-- تم تصحيح الخطأ هنا (استبدال النقطة بعلامة =)
             else:
                 st.info("لا توجد بيانات مسجلة للأطفال حتى الآن.")
     else:
