@@ -200,7 +200,6 @@ DROPDOWN_OPTIONS = {
     "مكان المتابعة": ["وحدة", "مستشفى", "أخرى"],
     "مصدر الاحالة": ["مستشفى الولادة", "عيادة خاصة", "عيادة التطعيمات", "نصيحة"],
     "موعد الزيارة": VISIT_SCHEDULE_OPTIONS,
-    "رضاعة طبيعية مطلقة": ["3 شهور", "4 شهور", "6 شهور"],
     "رضاعة طبيعية مع سوائل": ["تم", "لم يتم"],
     "رضاعة طبيعية مع صناعى": ["تم", "لم يتم"],
     "رضاعة لبن صناعى": ["تم", "لم يتم"],
@@ -244,18 +243,22 @@ PREGNANT_COLUMNS = [
 ]
 
 CHILD_COLUMNS = [
-    "تاريخ التسجيل", "اسم المستخدم", "اسم الام", "الرقم القومى للام", "رقم موبايل الام", "تاريخ ميلاد الام",
-    "مستوى التعليم للام", "عدد الاطفال لدى الام", "المدة بين اخر حملين", "وظيفة الام", "الرقم القومى للاب",
-    "رقم موبايل الاب", "اسم الاب", "مستوى التعليم للاب", "اسم الطفل", "تاريخ ميلاد الطفل", "العمر الحالى للطفل",
-    "العمر الرحمى للطفل", "مكان المتابعة", "مصدر الاحالة", "نوع الولادة", "مكان الولادة", "وزن الطفل عند الولادة",
-    "طول الطفل عند الولادة", "مقاس راس الطفل عند الولادة", "دخول الحضانه", "سبب دخول الحضانه", "مدة البقاء فى الحضانة",
-    "ملامسة الجلد فى الساعه الذهبية الاولى", "موعد الزيارة", "تاريخ الزيارة", "رضاعة طبيعية مطلقة",
-    "رضاعة طبيعية مع سوائل", "رضاعة طبيعية مع صناعى", "رضاعة لبن صناعى", "الوزن الحالى", "الطول الحالى",
-    "محيط الراس الحالى", "فوائد الرضاعه الطبيعية", "كفاية اللبن وكمية البراز", "اعطاء الجرعة اليومية من فيتامين د",
-    "كيفية رعاية الاسرة", "البطاقة الصحية واهمية المتابعة", "اهمية الالتزام بالتطعيمات", "التغذيه الصحيحة للام",
-    "كيفية التعرف على علامات الخطر", "النمو والتطور الحركى", "التطور الادراكى والمعرفى", "التطور اللغوى",
-    "رسائل التربية الايجابية", "الانشطة التحفيزية", "التوعية عن التغذية التكميلية وسلامة الغذاء", "اعطاء جرعة الحديد اليومية",
-    "اهمية استخدام الوسيلة", "موقف استخدام الوسيلة", "الحمل الجديد", "الخدمات الغير ملباه", "ملاحظات وتوصيات", "تخطيط الزيارة القادمة"
+    'تاريخ اول زيارة', 'رقم الحالة', 'اسم الام', 'الرقم القومى للام', 'رقم الموبايل للام', 'تاريخ ميلاد الام',
+    'مستوى التعليم للام', 'عدد الاطفال لدى الام', 'المدة بين اخر حملين', 'الوظيفة للام', 'الرقم القومى للاب',
+    'رقم الموبايل للاب', 'اسم الاب', 'مستوى التعليم للاب', 'اسم الطفل', 'تاريخ الميلاد للطفل',
+    'العمر الحالى للطفل (شهور)', 'العمر الرحمى للطفل (أسابيع)', 'وحدة', 'مستشفى', 'أخرى', 'مستشفى الولادة',
+    'عيادة خاصة', 'عيادة التطعيمات', 'نصيحة', 'نوع الولادة', 'مكان الولادة', 'وزن الطفل عند الولادة',
+    'طول الطفل عند الولادة', 'مقاس راس الطفل عند الولادة', 'دخول الحضانة', 'سبب دخول الحضانة', 'مدة البقاء فى الحضانة',
+    'ملامسة الجلد فى الساعة الأولى', 'الرضاعة الطبيعية فى الساعة الأولى', 'موعد الزيارة', 'تاريخ الزيارة',
+    'رضاعة طبيعية مطلقة', 'رضاعة طبيعية مع سوائل وأعشاب', 'رضاعة طبيعية مع صناعي', 'رضاعة لبن صناعي',
+    'الوزن (كجم)', 'الطول (سم)', 'محيط الرأس (سم)', 'فوائد الرضاعة الطبيعية والأوضاع وعلامات الجوع والشبع',
+    'كفاية اللبن وكمية البراز', 'إعطاء الجرعة اليومية من فيتامين د', 'كيفية رعاية السرة والإهتمام بنظافة الطفل',
+    'البطاقة الصحية وأهمية المتابعة الدورية ومنحنيات النمو', 'أهمية الإلتزام بتطعيمات الطفل',
+    'التغذية الصحية للأم المرضعة', 'كيفية التعرف على علامات الخطورة', 'النمو والتطور الحركي',
+    'التطور الإدراكي والمعرفي', 'التطور اللغوي', 'رسائل التربية الإيجابية', 'الأنشطة التحفيزية',
+    'التوعية عن التغذية التكميلية وسلامة الغذاء والتغذية السليمة', 'إعطاء الجرعة اليومية من الحديد',
+    'أهمية إستخدام وسيلة تنظيم أسرة وأهمية المباعدة', 'موقف إستخدام وسيلة تنظيم أسرة', 'الحمل الجديد',
+    'الخدمات الغير ملباه', 'ملاحظات/ توصيات', 'تخطيط الزيارة القادمة', 'تاريخ التسجيل', 'اسم المستخدم'
 ]
 
 def parse_national_id(nat_id):
@@ -463,27 +466,24 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    auto_fill_phase = False
+    today_str = datetime.date.today().strftime("%Y-%m-%d")
     for col in CHILD_COLUMNS:
         if f"c_{col}" not in st.session_state:
-            if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
-                st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
+            if col == "تاريخ الزيارة":
+                st.session_state[f"c_{col}"] = today_str
+            elif col == "تاريخ اول زيارة":
+                st.session_state[f"c_{col}"] = today_str
             elif col == "الخدمات الغير ملباه":
                 st.session_state[f"c_{col}"] = "لا يوجد"
-            elif col in ["التطور الادراكى والمعرفى", "التطور اللغوى"]:
+            elif col in ["التطور الإدراكي والمعرفي", "التطور اللغوي"]:
                 st.session_state[f"c_{col}"] = "طبيعى"
-            elif col == "فوائد الرضاعه الطبيعية":
-                auto_fill_phase = True
-                st.session_state[f"c_{col}"] = "تم"
-            elif auto_fill_phase:
-                st.session_state[f"c_{col}"] = "تم"
-                if col == "كيفية التعرف على علامات الخطر":
-                    auto_fill_phase = False
             else:
                 st.session_state[f"c_{col}"] = ""
 
-    nat_id_mom_input = st.text_input("الرقم القومى للام (اختياري)", max_chars=14, key="c_الرقم القومى للام")
-    
+    nat_id_mom_input = st.text_input("الرقم القومى للام (اختياري)", max_chars=14, key="c_الرقم القومى للام_input")
+    if nat_id_mom_input:
+        st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
+
     if nat_id_mom_input and len(nat_id_mom_input) == 14:
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
         if b_date_mom and not st.session_state.get("c_تاريخ ميلاد الام"):
@@ -500,20 +500,79 @@ elif menu == "سجل الأطفال":
                     st.session_state[f"c_{c_name}"] = str(val)
             st.rerun()
 
+    # Form inputs mapped directly to CHILD_COLUMNS
     for col_name in CHILD_COLUMNS:
-        if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
+        if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
             continue
             
-        if col_name == "الرقم القومى للام":
-            continue
+        # Mapping alternative/similar names to DROPDOWN_OPTIONS keys if needed
+        opt_key = col_name
+        if col_name == "الوظيفة للام":
+            opt_key = "وظيفة الام"
+        elif col_name == "تاريخ الميلاد للطفل":
+            opt_key = "تاريخ ميلاد الطفل"
+        elif col_name == "العمر الحالى للطفل (شهور)":
+            opt_key = "العمر الحالى للطفل"
+        elif col_name == "العمر الرحمى للطفل (أسابيع)":
+            opt_key = "العمر الرحمى للطفل"
+        elif col_name == "دخول الحضانة":
+            opt_key = "دخول الحضانه"
+        elif col_name == "سبب دخول الحضانة":
+            opt_key = "سبب دخول الحضانة"
+        elif col_name == "ملامسة الجلد فى الساعة الأولى":
+            opt_key = "ملامسة الجلد فى الساعه الذهبية الاولى"
+        elif col_name == "الرضاعة الطبيعية فى الساعة الأولى":
+            opt_key = "الساعة الذهبية الاولى"
+        elif col_name == "رضاعة طبيعية مع سوائل وأعشاب":
+            opt_key = "رضاعة طبيعية مع سوائل"
+        elif col_name == "رضاعة طبيعية مع صناعي":
+            opt_key = "رضاعة طبيعية مع صناعى"
+        elif col_name == "رضاعة لبن صناعي":
+            opt_key = "رضاعة لبن صناعى"
+        elif col_name == "الوزن (كجم)":
+            opt_key = "الوزن الحالى"
+        elif col_name == "الطول (سم)":
+            opt_key = "الطول الحالى"
+        elif col_name == "محيط الرأس (سم)":
+            opt_key = "محيط الراس الحالى"
+        elif col_name == "إعطاء الجرعة اليومية من فيتامين د":
+            opt_key = "اعطاء الجرعة اليومية من فيتامين د"
+        elif col_name == "كيفية رعاية السرة والإهتمام بنظافة الطفل":
+            opt_key = "كيفية رعاية الاسرة"
+        elif col_name == "البطاقة الصحية وأهمية المتابعة الدورية ومنحنيات النمو":
+            opt_key = "البطاقة الصحية واهمية المتابعة"
+        elif col_name == "أهمية الإلتزام بتطعيمات الطفل":
+            opt_key = "اهمية الالتزام بالتطعيمات"
+        elif col_name == "التغذية الصحية للأم المرضعة":
+            opt_key = "التغذيه الصحيحة للام"
+        elif col_name == "كيفية التعرف على علامات الخطورة":
+            opt_key = "كيفية التعرف على علامات الخطر"
+        elif col_name == "النمو والتطور الحركي":
+            opt_key = "النمو والتطور الحركى"
+        elif col_name == "التطور الإدراكي والمعرفي":
+            opt_key = "التطور الادراكى والمعرفى"
+        elif col_name == "التطور اللغوي":
+            opt_key = "التطور اللغوى"
+        elif col_name == "الأنشطة التحفيزية":
+            opt_key = "الانشطة التحفيزية"
+        elif col_name == "التوعية عن التغذية التكميلية وسلامة الغذاء والتغذية السليمة":
+            opt_key = "التوعية عن التغذية التكميلية وسلامة الغذاء"
+        elif col_name == "إعطاء الجرعة اليومية من الحديد":
+            opt_key = "اعطاء جرعة الحديد اليومية"
+        elif col_name == "أهمية إستخدام وسيلة تنظيم أسرة وأهمية المباعدة":
+            opt_key = "اهمية استخدام الوسيلة"
+        elif col_name == "موقف إستخدام وسيلة تنظيم أسرة":
+            opt_key = "موقف استخدام الوسيلة"
+        elif col_name == "ملاحظات/ توصيات":
+            opt_key = "ملاحظات وتوصيات"
 
-        if col_name in DROPDOWN_OPTIONS:
-            options = DROPDOWN_OPTIONS[col_name]
+        if opt_key in DROPDOWN_OPTIONS:
+            options = DROPDOWN_OPTIONS[opt_key]
             
             if col_name == "موعد الزيارة":
                 auto_visit_choice = VISIT_SCHEDULE_OPTIONS[0]
                 try:
-                    age_str = st.session_state.get("c_العمر الحالى للطفل", "")
+                    age_str = st.session_state.get("c_العمر الحالى للطفل (شهور)", "")
                     if age_str:
                         if "يوم" in age_str or "أسبوع" in age_str:
                             auto_visit_choice = "الاسبوع الاول"
@@ -551,7 +610,6 @@ elif menu == "سجل الأطفال":
                                 auto_visit_choice = "عمر 6 سنين"
                 except Exception:
                     pass
-                
                 st.session_state[f"c_{col_name}"] = auto_visit_choice
 
             if col_name == "الخدمات الغير ملباه" and not st.session_state.get(f"c_{col_name}"):
@@ -560,64 +618,13 @@ elif menu == "سجل الأطفال":
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
             
-            growth_fields_list = ["النمو والتطور الحركى"]
+            st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
             
-            if col_name in growth_fields_list:
-                options_growth = ["طبيعى", "متقدم", "متاخر"]
-                try:
-                    w_curr_val = float(st.session_state.get("c_الوزن الحالى", 3.0) or 3.0)
-                    l_curr_val = float(st.session_state.get("c_الطول الحالى", 50.0) or 50.0)
-                    
-                    age_raw = st.session_state.get("c_العمر الحالى للطفل", "0")
-                    if "يوم" in age_raw or "أسبوع" in age_raw:
-                        age_in_months = 1.0
-                    else:
-                        age_in_months = float(''.join(filter(lambda x: x.isdigit() or x=='.', age_raw)) or 1.0)
-                    
-                    if age_in_months <= 12:
-                        std_weight = 3.3 + (age_in_months * 0.55)
-                        std_length = 50.0 + (age_in_months * 2.5)
-                    else:
-                        std_weight = 10.0 + ((age_in_months - 12) * 0.2)
-                        std_length = 75.0 + ((age_in_months - 12) * 0.5)
-                    
-                    if w_curr_val < (std_weight * 0.85) or l_curr_val < (std_length * 0.90):
-                        auto_m = "متاخر"
-                    elif w_curr_val > (std_weight * 1.15) or l_curr_val > (std_length * 1.10):
-                        auto_m = "متقدم"
-                    else:
-                        auto_m = "طبيعى"
-                except Exception:
-                    auto_m = "طبيعى"
-
-                current_val = st.session_state.get(f"c_{col_name}", auto_m)
-                m_idx = options_growth.index(current_val) if current_val in options_growth else options_growth.index(auto_m)
-                
-                st.selectbox(
-                    f"{col_name} [مقارنة بالمعدل الطبيعي للعمر - قابل للتعديل الفوري]", 
-                    options_growth, 
-                    index=m_idx, 
-                    key=f"c_{col_name}"
-                )
-            elif col_name in ["التطور الادراكى والمعرفى", "التطور اللغوى"]:
-                options_dev = ["طبيعى", "متقدم", "متاخر"]
-                current_dev = st.session_state.get(f"c_{col_name}", "طبيعى")
-                dev_idx = options_dev.index(current_dev) if current_dev in options_dev else 0
-                st.selectbox(f"{col_name} [مملوء تلقائياً بـ طبيعي - قابل للتعديل]", options_dev, index=dev_idx, key=f"c_{col_name}")
-            else:
-                if col_name in ["رسائل التربية الايجابية", "الانشطة التحفيزية", "التوعية عن التغذية التكميلية وسلامة الغذاء"]:
-                    options_status = ["تم", "لم يتم"]
-                    current_status = st.session_state.get(f"c_{col_name}", "تم")
-                    s_idx = options_status.index(current_status) if current_status in options_status else 0
-                    st.selectbox(col_name, options_status, index=s_idx, key=f"c_{col_name}")
-                else:
-                    st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
-                
         else:
             if col_name == "تاريخ ميلاد الام":
                 st.text_input(f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]", key=f"c_{col_name}")
                 
-            elif col_name == "تاريخ ميلاد الطفل":
+            elif col_name == "تاريخ الميلاد للطفل":
                 default_date_val = datetime.date.today()
                 existing_b_date = st.session_state.get(f"c_{col_name}", "")
                 if existing_b_date:
@@ -645,17 +652,17 @@ elif menu == "سجل الأطفال":
                                 if months_count.is_integer():
                                     months_count = int(months_count)
                                 age_display = f"{months_count} شهر"
-                            st.session_state["c_العمر الحالى للطفل"] = age_display
+                            st.session_state["c_العمر الحالى للطفل (شهور)"] = age_display
                             
                             gestational_weeks_calc = max(24, min(42, 40 - max(0, round((280 - delta_days) / 7))))
-                            st.session_state["c_العمر الرحمى للطفل"] = f"{gestational_weeks_calc} أسبوع"
+                            st.session_state["c_العمر الرحمى للطفل (أسابيع)"] = f"{gestational_weeks_calc} أسبوع"
                 except Exception:
                     pass
 
-            elif col_name == "العمر الحالى للطفل":
+            elif col_name == "العمر الحالى للطفل (شهور)":
                 st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
                 
-            elif col_name == "العمر الرحمى للطفل":
+            elif col_name == "العمر الرحمى للطفل (أسابيع)":
                 st.text_input(f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]", key=f"c_{col_name}")
 
             elif col_name == "وزن الطفل عند الولادة":
@@ -674,7 +681,7 @@ elif menu == "سجل الأطفال":
             elif col_name == "مقاس راس الطفل عند الولادة":
                 st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
 
-            elif col_name == "تاريخ الزيارة":
+            elif col_name in ["تاريخ الزيارة", "تاريخ اول زيارة"]:
                 if not st.session_state.get(f"c_{col_name}"):
                     st.session_state[f"c_{col_name}"] = datetime.date.today().strftime("%Y-%m-%d")
                 st.text_input(f"{col_name} [تاريخ اليوم - قابل للتعديل]", key=f"c_{col_name}")
@@ -695,7 +702,7 @@ elif menu == "سجل الأطفال":
                             "عمر 4 سنين ونصف": 1642, "عمر 5 سنين": 1825, "عمر 5 سنين ونصف": 2007, "عمر 6 سنين": 2190
                         }
                         
-                        b_date_str = st.session_state.get("c_تاريخ ميلاد الطفل", "")
+                        b_date_str = st.session_state.get("c_تاريخ الميلاد للطفل", "")
                         if b_date_str:
                             b_date_obj = datetime.datetime.strptime(b_date_str.strip(), "%Y-%m-%d").date()
                             target_days = schedule_days_map.get(next_visit_label, 30)
@@ -709,12 +716,12 @@ elif menu == "سجل الأطفال":
                 st.session_state[f"c_{col_name}"] = calc_next_visit_date
                 st.text_input(f"{col_name} [تاريخ الزيارة التالية بناءً على موعد الزيارة القادم]", key=f"c_{col_name}")
 
-            elif col_name == "الطول الحالى":
+            elif col_name == "الطول (سم)":
                 st.text_input(col_name, key=f"c_{col_name}")
                 try:
-                    age_s = st.session_state.get("c_العمر الحالى للطفل", "0")
-                    w_curr = st.session_state.get("c_الوزن الحالى", "3.0")
-                    h_curr = st.session_state.get("c_الطول الحالى", "50.0")
+                    age_s = st.session_state.get("c_العمر الحالى للطفل (شهور)", "0")
+                    w_curr = st.session_state.get("c_الوزن (كجم)", "3.0")
+                    h_curr = st.session_state.get("c_الطول (سم)", "50.0")
                     if age_s and w_curr and h_curr:
                         if "يوم" in age_s or "أسبوع" in age_s:
                             age_m = 0.5
@@ -729,11 +736,11 @@ elif menu == "سجل الأطفال":
                             base_h = 40.4 + ((age_m - 3) * 0.75)
                         else:
                             base_h = 47 + ((age_m - 12) * 0.25)
-                        st.session_state["c_محيط الراس الحالى"] = str(round(base_h + (weight_kg * 0.15) + (length_cm * 0.05) - 2.5, 1))
+                        st.session_state["c_محيط الرأس (سم)"] = str(round(base_h + (weight_kg * 0.15) + (length_cm * 0.05) - 2.5, 1))
                 except ValueError:
                     pass
 
-            elif col_name == "محيط الراس الحالى":
+            elif col_name == "محيط الرأس (سم)":
                 st.text_input(f"{col_name} [محسوب بالمعايير العالمية]", key=f"c_{col_name}")
 
             else:
@@ -747,7 +754,7 @@ elif menu == "سجل الأطفال":
             elif col == "اسم المستخدم":
                 form_data[col] = st.session_state.name
             elif col == "الرقم القومى للام":
-                form_data[col] = nat_id_mom_input
+                form_data[col] = st.session_state.get("c_الرقم القومى للام", nat_id_mom_input)
             else:
                 form_data[col] = st.session_state.get(f"c_{col}", "")
         
@@ -880,7 +887,7 @@ elif menu == "استعراض البيانات والداشبورد":
 
                 display_df_child = filtered_child.copy()
                 display_df_child.insert(0, "رقم الصف", display_df_child.index)
-                st.dataframe(display_df_child, use_container_width=True)
+                st.dataframe(display_df_child, use_container_width.True)
             else:
                 st.info("لا توجد بيانات مسجلة للأطفال حتى الآن.")
     else:
