@@ -431,7 +431,6 @@ elif menu == "سجل الحوامل":
             is_in_auto_range = False
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
-        # التأكد من جمع قيم جميع الحقول بما فيها المعطاة تلقائياً عبر st.session_state مباشرة لضمان عدم ترك أي حقل فارغ عند الحفظ
         final_form_data = {}
         for col in PREGNANT_COLUMNS:
             if col == "تاريخ التسجيل":
@@ -741,7 +740,6 @@ elif menu == "سجل الأطفال":
                 st.text_input(col_name, key=f"c_{col_name}")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
-        # التأكد من جمع قيم جميع الحقول بما فيها التلقائية (من فوائد الرضاعة إلى علامات الخطر، والتطور الإدراكي واللغوي، وغيرها) بالاعتماد على st.session_state
         form_data = {}
         for col in CHILD_COLUMNS:
             if col == "تاريخ التسجيل":
