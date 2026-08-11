@@ -216,7 +216,7 @@ DROPDOWN_OPTIONS = {
     "الانشطة التحفيزية": ["تم", "لم يتم"],
     "التوعية عن التغذية التكميلية وسلامة الغذاء": ["تم", "لم يتم"],
     "اعطاء جرعة الحديد اليومية": ["يوجد", "لا يوجد"],
-    "اهمية استخدام الوسيلة": ["تم التوعية", "لم يتم التوعية"],
+    "اهمية استخدام الوسيلة": ["تم التوعيه", "لم يتم التوعيه"],
     "اعطاء الجرعة اليومية من فيتامين د": ["يوجد", "لا يوجد"],
     "كيفية رعاية الاسرة": ["تم", "لم يتم"],
     "البطاقة الصحية واهمية المتابعة": ["تم", "لم يتم"],
@@ -347,7 +347,6 @@ with col_mobile_logout:
 menu = main_screen_menu
 st.markdown("---")
 
-# ==================== دالة تفريغ الحقول لسجل الأطفال (النسخة الآمنة) ====================
 def clear_child_form():
     for col in CHILD_COLUMNS:
         session_key = f"c_{col}"
@@ -432,10 +431,17 @@ elif menu == "سجل الحوامل":
             is_in_auto_range = False
     
     if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
-        form_data["تاريخ التسجيل"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        form_data["اسم المستخدم"] = st.session_state.name
+        # التأكد من جمع قيم جميع الحقول بما فيها المعطاة تلقائياً عبر st.session_state مباشرة لضمان عدم ترك أي حقل فارغ عند الحفظ
+        final_form_data = {}
+        for col in PREGNANT_COLUMNS:
+            if col == "تاريخ التسجيل":
+                final_form_data[col] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            elif col == "اسم المستخدم":
+                final_form_data[col] = st.session_state.name
+            else:
+                final_form_data[col] = st.session_state.get(f"p_{col}", form_data.get(col, ""))
         
-        new_df = pd.DataFrame([form_data], dtype=str)
+        new_df = pd.DataFrame([final_form_data], dtype=str)
         excel = pd.ExcelFile(EXCEL_FILE)
         all_dfs = {s: pd.read_excel(excel, sheet_name=s, dtype=str) for s in excel.sheet_names}
         
@@ -458,14 +464,7 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
-    # تهيئة الحقول التلقائية للفترة من "فوائد الرضاعه الطبيعية" إلى "كيفية التعرف على علامات الخطر" لتكون "تم"
     auto_fill_phase = False
-    fields_to_auto_tem = [
-        "فوائد الرضاعه الطبيعية", "كفاية اللبن وكمية البراز", "اعطاء الجرعة اليومية من فيتامين د",
-        "كيفية رعاية الاسرة", "البطاقة الصحية واهمية المتابعة", "اهمية الالتزام بالتطعيمات",
-        "التغذيه الصحيحة للام", "كيفية التعرف على علامات الخطر"
-    ]
-
     for col in CHILD_COLUMNS:
         if f"c_{col}" not in st.session_state:
             if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
@@ -566,7 +565,6 @@ elif menu == "سجل الأطفال":
             
             if col_name in growth_fields_list:
                 options_growth = ["طبيعى", "متقدم", "متاخر"]
-                
                 try:
                     w_curr_val = float(st.session_state.get("c_الوزن الحالى", 3.0) or 3.0)
                     l_curr_val = float(st.session_state.get("c_الطول الحالى", 50.0) or 50.0)
@@ -743,6 +741,7 @@ elif menu == "سجل الأطفال":
                 st.text_input(col_name, key=f"c_{col_name}")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
+        # التأكد من جمع قيم جميع الحقول بما فيها التلقائية (من فوائد الرضاعة إلى علامات الخطر، والتطور الإدراكي واللغوي، وغيرها) بالاعتماد على st.session_state
         form_data = {}
         for col in CHILD_COLUMNS:
             if col == "تاريخ التسجيل":
@@ -793,7 +792,7 @@ elif menu == "سجل الأطفال":
             </div>
         """, unsafe_allow_html=True)
         
-        st.success("تم حفظ بيانات الطفل بنجاح! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
+        st.success("تم حفظ بيانات الطفل بنجاح وتعبئة جميع الحقول في ملف الإكسل! جاري تفريغ الحقول لتسجيل طفل جديد... ✨")
         
         import time
         time.sleep(3)
