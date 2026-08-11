@@ -723,7 +723,6 @@ elif menu == "سجل الأطفال":
                 st.text_input(col_name, key=f"c_{col_name}")
 
     if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
-        # جمع البيانات من session_state مباشرة لحفظها بدقة وسليمة
         form_data = {}
         for col in CHILD_COLUMNS:
             if col == "تاريخ التسجيل":
@@ -754,7 +753,6 @@ elif menu == "سجل الأطفال":
             for s, df in all_dfs.items():
                 df.to_excel(writer, sheet_name=s, index=False)
         
-        # تأثير تطاير القلوب الكثيرة والقلب الكبير باسم د. شيماء
         hearts_html = ""
         import random
         for _ in range(35):
