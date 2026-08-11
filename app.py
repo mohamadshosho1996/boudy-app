@@ -216,7 +216,7 @@ DROPDOWN_OPTIONS = {
     "الانشطة التحفيزية": ["تم", "لم يتم"],
     "التوعية عن التغذية التكميلية وسلامة الغذاء": ["تم", "لم يتم"],
     "اعطاء جرعة الحديد اليومية": ["يوجد", "لا يوجد"],
-    "اهمية استخدام الوسيلة": ["تم التوعية", "غير مهتمة", "مرفوض"],
+    "اهمية استخدام الوسيلة": ["تم التوعية", "لم يتم التوعية"],
     "اعطاء الجرعة اليومية من فيتامين د": ["يوجد", "لا يوجد"],
     "كيفية رعاية الاسرة": ["تم", "لم يتم"],
     "البطاقة الصحية واهمية المتابعة": ["تم", "لم يتم"],
@@ -458,12 +458,29 @@ elif menu == "سجل الحوامل":
 elif menu == "سجل الأطفال":
     st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
     
+    # تهيئة الحقول التلقائية للفترة من "فوائد الرضاعه الطبيعية" إلى "كيفية التعرف على علامات الخطر" لتكون "تم"
+    auto_fill_phase = False
+    fields_to_auto_tem = [
+        "فوائد الرضاعه الطبيعية", "كفاية اللبن وكمية البراز", "اعطاء الجرعة اليومية من فيتامين د",
+        "كيفية رعاية الاسرة", "البطاقة الصحية واهمية المتابعة", "اهمية الالتزام بالتطعيمات",
+        "التغذيه الصحيحة للام", "كيفية التعرف على علامات الخطر"
+    ]
+
     for col in CHILD_COLUMNS:
         if f"c_{col}" not in st.session_state:
             if col == "تاريخ الزيارة" and not st.session_state.get("c_تاريخ الزيارة"):
                 st.session_state["c_تاريخ الزيارة"] = datetime.date.today().strftime("%Y-%m-%d")
             elif col == "الخدمات الغير ملباه":
                 st.session_state[f"c_{col}"] = "لا يوجد"
+            elif col in ["التطور الادراكى والمعرفى", "التطور اللغوى"]:
+                st.session_state[f"c_{col}"] = "طبيعى"
+            elif col == "فوائد الرضاعه الطبيعية":
+                auto_fill_phase = True
+                st.session_state[f"c_{col}"] = "تم"
+            elif auto_fill_phase:
+                st.session_state[f"c_{col}"] = "تم"
+                if col == "كيفية التعرف على علامات الخطر":
+                    auto_fill_phase = False
             else:
                 st.session_state[f"c_{col}"] = ""
 
@@ -545,9 +562,7 @@ elif menu == "سجل الأطفال":
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             idx = options.index(current_val) if current_val in options else 0
             
-            growth_fields_list = [
-                "النمو والتطور الحركى", "التطور الادراكى والمعرفى", "التطور اللغوى"
-            ]
+            growth_fields_list = ["النمو والتطور الحركى"]
             
             if col_name in growth_fields_list:
                 options_growth = ["طبيعى", "متقدم", "متاخر"]
@@ -587,6 +602,11 @@ elif menu == "سجل الأطفال":
                     index=m_idx, 
                     key=f"c_{col_name}"
                 )
+            elif col_name in ["التطور الادراكى والمعرفى", "التطور اللغوى"]:
+                options_dev = ["طبيعى", "متقدم", "متاخر"]
+                current_dev = st.session_state.get(f"c_{col_name}", "طبيعى")
+                dev_idx = options_dev.index(current_dev) if current_dev in options_dev else 0
+                st.selectbox(f"{col_name} [مملوء تلقائياً بـ طبيعي - قابل للتعديل]", options_dev, index=dev_idx, key=f"c_{col_name}")
             else:
                 if col_name in ["رسائل التربية الايجابية", "الانشطة التحفيزية", "التوعية عن التغذية التكميلية وسلامة الغذاء"]:
                     options_status = ["تم", "لم يتم"]
