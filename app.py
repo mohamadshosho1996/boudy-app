@@ -175,14 +175,13 @@ DROPDOWN_OPTIONS = {
     "الرضاعة الطبيعية فى الساعة الذهبية الأولى": ["تم", "لم يتم"],
     "موقف إستخدام وسيلة تنظيم أسرة": [
         "توجد",
-        "لا يوجد",
         "مرغوب",
         "غير مرغوب",
         "حدث",
         "لم يحدث",
     ],
     "الحمل الجديد": ["مرغوب", "غير مرغوب"],
-    "الخدمات الغير ملباه": ["لا يوجد", "يوجد"],
+    "الخدمات الغير ملباه": ["يوجد"],
     "تحويل الى عيادة تنظيم الاسره": ["تم", "لم يتم"],
     "النمو والتطور الحركي": ["طبيعى", "متقدم", "متاخر"],
     "التطور الإدراكي والمعرفي": ["طبيعى", "متقدم", "متاخر"],
@@ -192,12 +191,12 @@ DROPDOWN_OPTIONS = {
     (
         "التوعية عن التغذية التكميلية وسلامة الغذاء والتغذية السليمة"
     ): ["تم", "لم يتم"],
-    "إعطاء الجرعة اليومية من الحديد": ["يوجد", "لا يوجد"],
+    "إعطاء الجرعة اليومية من الحديد": ["يوجد"],
     "أهمية إستخدام وسيلة تنظيم أسرة وأهمية المباعدة": [
         "تم التوعيه",
         "لم يتم التوعيه",
     ],
-    "إعطاء الجرعة اليومية من فيتامين د": ["يوجد", "لا يوجد"],
+    "إعطاء الجرعة اليومية من فيتامين د": ["يوجد"],
     "كيفية رعاية السرة والإهتمام بنظافة الطفل": ["تم", "لم يتم"],
     "البطاقة الصحية وأهمية المتابعة الدورية ومنحنيات النمو": [
         "تم",
@@ -528,8 +527,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم إزالة خيار (لا يوجد) من جميع قوائم شيت الحوامل والإبقاء عليه فقط في"
-      " حقل (نوع الولادة)."
+      "تم تحديث شيت الحوامل والداشبورد لعرض مؤشرات الحوامل المطلوبة بدقة مع"
+      " التحكم في خيارات (لا يوجد)."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -1052,11 +1051,13 @@ elif menu == "استعراض البيانات والداشبورد":
     sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
     df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
 
-    st.markdown("### 📅 تحديد فترة البحث والفلترة الزمنية")
+    st.markdown("### 📅 تحديد فترة البحث والفلترة الزمنية والمستخدمين")
 
     date_col = (
         "تاريخ الزيارة" if "تاريخ الزيارة" in df_view.columns else "تاريخ التسجيل"
     )
+
+    filtered_df = df_view.copy()
 
     if not df_view.empty and date_col in df_view.columns:
       try:
@@ -1072,7 +1073,7 @@ elif menu == "استعراض البيانات والداشبورد":
           min_d = datetime.date.today()
           max_d = datetime.date.today()
 
-        col_start, col_end = st.columns(2)
+        col_start, col_end, col_user_filter = st.columns(3)
         with col_start:
           start_date = st.date_input(
               "📅 من تاريخ:", value=min_d, key="filter_start_date"
@@ -1081,6 +1082,16 @@ elif menu == "استعراض البيانات والداشبورد":
           end_date = st.date_input(
               "📅 إلى تاريخ:", value=max_d, key="filter_end_date"
           )
+        with col_user_filter:
+          if "اسم المستخدم" in df_view.columns:
+            users_list = [
+                "الكل"
+            ] + list(df_view["اسم المستخدم"].dropna().unique())
+            selected_user_filter = st.selectbox(
+                "👩‍⚕️ تصفية حسب الطبيبة:", users_list, key="filter_user_selectbox"
+            )
+          else:
+            selected_user_filter = "الكل"
 
         filtered_df = df_view[
             (df_view["_temp_date"] >= start_date)
@@ -1089,12 +1100,90 @@ elif menu == "استعراض البيانات والداشبورد":
         filtered_df = filtered_df.drop(columns=["_temp_date"], errors="ignore")
       except Exception:
         filtered_df = df_view.copy()
+        selected_user_filter = "الكل"
     else:
-      filtered_df = df_view.copy()
+      selected_user_filter = "الكل"
+
+    if selected_user_filter != "الكل" and "اسم المستخدم" in filtered_df.columns:
+      filtered_df = filtered_df[
+          filtered_df["اسم المستخدم"] == selected_user_filter
+      ]
 
     st.markdown("---")
 
-    if sheet_to_show == "سجل المشورة للاطفال":
+    # جدول مؤشرات شيت الحوامل بناءً على طلبك
+    if sheet_to_show == "المشورة الاسرية للحامل":
+      st.markdown("### 🤰 جدول مؤشرات الحوامل المطلوبة")
+
+      total_pregnant_cases = len(filtered_df)
+
+      def count_match_val(df, col_name, target_val):
+        if col_name in df.columns and not df.empty:
+          return (
+              df[col_name]
+              .fillna("")
+              .astype(str)
+              .str.strip()
+              .eq(target_val)
+              .sum()
+          )
+        return 0
+
+      # عدد حالات المتابعة الدورية للحمل (حيث تساوي "تم")
+      periodic_followup_count = count_match_val(
+          filtered_df, "المتابعة الدورية للحمل", "تم"
+      )
+
+      # عدد الولادة الطبيعية
+      natural_birth_count = count_match_val(
+          filtered_df, "نوع الولادة", "طبيعى"
+      )
+
+      # عدد الولادة القيصرية
+      cesarean_birth_count = count_match_val(
+          filtered_df, "نوع الولادة", "قيصرى"
+      )
+
+      # إجمالي عدد حالات وسيلة تنظيم الأسرة المستخدمة سابقاً (تتضمن القيم المسجلة ما عدا الفارغة)
+      fam_plan_prev_count = 0
+      if (
+          "وسيلة تنظيم الأسرة المستخدمة سابقا" in filtered_df.columns
+          and not filtered_df.empty
+      ):
+        fam_plan_prev_count = (
+            filtered_df["وسيلة تنظيم الأسرة المستخدمة سابقا"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne("")
+            .sum()
+        )
+
+      pregnant_summary_df = pd.DataFrame(
+          {
+              "المؤشر المطلوبة": [
+                  "إجمالي الحالات",
+                  "عدد حالات المتابعة الدورية للحمل",
+                  "عدد الولادة الطبيعية",
+                  "عدد الولادة القيصرية",
+                  "إجمالي عدد حالات وسيلة تنظيم الأسرة المستخدمة سابقاً",
+              ],
+              "العدد": [
+                  int(total_pregnant_cases),
+                  int(periodic_followup_count),
+                  int(natural_birth_count),
+                  int(cesarean_birth_count),
+                  int(fam_plan_prev_count),
+              ],
+          }
+      )
+
+      st.dataframe(
+          pregnant_summary_df, use_container_width=True, hide_index=True
+      )
+      st.markdown("---")
+
+    elif sheet_to_show == "سجل المشورة للاطفال":
       st.markdown(
           "### 👶 ملخص مؤشرات الأداء والخدمات (البيانات المطلوبة للأسرة والطفل)"
       )
@@ -1174,24 +1263,7 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    col_search, col_filter = st.columns(2)
-    with col_search:
-      search_query = st.text_input("🔍 بحث سريع إضافي:")
-    with col_filter:
-      if "اسم المستخدم" in filtered_df.columns:
-        users_list = [
-            "الكل"
-        ] + list(filtered_df["اسم المستخدم"].dropna().unique())
-        selected_user_filter = st.selectbox(
-            "👩‍⚕️ تصفية حسب الطبيبة:", users_list
-        )
-      else:
-        selected_user_filter = "الكل"
-
-    if selected_user_filter != "الكل":
-      filtered_df = filtered_df[
-          filtered_df["اسم المستخدم"] == selected_user_filter
-      ]
+    search_query = st.text_input("🔍 بحث سريع إضافي:")
 
     if search_query:
       mask = filtered_df.apply(
