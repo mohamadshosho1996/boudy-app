@@ -519,8 +519,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تحديث حقل رضاعة طبيعية مطلقة ليعمل بمربعات اختيار (3 شهور، 4 شهور، 6"
-      " شهور) ويحفظ القيمة المختارة مباشرة في الأكسل."
+      "تم إضافة خاصية حذف السجلات أو الأرقام القومية في الداشبورد لصلاحيات"
+      " الـ Admin فقط."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -657,34 +657,24 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    # حقل رضاعة طبيعية مطلقة الجديد (Checkboxes)
     if col_name == "رضاعة طبيعية مطلقة":
       st.markdown(f"**{col_name}**")
       c1, c2, c3 = st.columns(3)
-
-      # استرجاع القيمة الحالية من الجلسة
       current_val = st.session_state.get(f"c_{col_name}", "")
 
       with c1:
         chk_3 = st.checkbox(
-            "3 شهور",
-            value=(current_val == "3 شهور"),
-            key="c_bf_ex_3",
+            "3 شهور", value=(current_val == "3 شهور"), key="c_bf_ex_3"
         )
       with c2:
         chk_4 = st.checkbox(
-            "4 شهور",
-            value=(current_val == "4 شهور"),
-            key="c_bf_ex_4",
+            "4 شهور", value=(current_val == "4 شهور"), key="c_bf_ex_4"
         )
       with c3:
         chk_6 = st.checkbox(
-            "6 شهور",
-            value=(current_val == "6 شهور"),
-            key="c_bf_ex_6",
+            "6 شهور", value=(current_val == "6 شهور"), key="c_bf_ex_6"
         )
 
-      # تحديد القيمة المختارة بناءً على الـ Checkbox المفعل
       selected_bf_ex = ""
       if chk_3:
         selected_bf_ex = "3 شهور"
@@ -941,12 +931,10 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # لو سجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً بالترتيب
     if sheet_to_show == "سجل المشورة للاطفال":
       st.markdown(
           "### 👶 ملخص مؤشرات الأداء والخدمات (البيانات المطلوبة للأسرة والطفل)"
       )
-
       total_child_cases = len(filtered_df)
 
       def count_match(df, col_name, target_val):
@@ -961,7 +949,6 @@ elif menu == "استعراض البيانات والداشبورد":
           )
         return 0
 
-      # حساب العناصر الـ 6 المحددة تماماً
       incubator_count = count_match(filtered_df, "دخول الحضانة", "تم")
       skin_contact_count = count_match(
           filtered_df, "ملامسة الجلد فى الساعة الذهبية الأولى", "تم"
@@ -969,7 +956,6 @@ elif menu == "استعراض البيانات والداشبورد":
       bf_golden_count = count_match(
           filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
       )
-      # تجميع الحالات التي اختارت (3 شهور أو 4 شهور أو 6 شهور) في رضاعة طبيعية مطلقة
       exclusive_bf_6m_count = 0
       if "رضاعة طبيعية مطلقة" in filtered_df.columns and not filtered_df.empty:
         exclusive_bf_6m_count = (
@@ -985,7 +971,6 @@ elif menu == "استعراض البيانات والداشبورد":
           filtered_df, "تحويل الى عيادة تنظيم الاسره", "تم"
       )
 
-      # إنشاء جدول البيانات بالـ 6 عناصر المطلوبة حصرياً
       summary_df = pd.DataFrame(
           {
               "البيان": [
@@ -1007,11 +992,9 @@ elif menu == "استعراض البيانات والداشبورد":
           }
       )
 
-      # عرض الجدول بدون إظهار أرقام الفهرس الجانبية (hide_index=True) ليكون عمود البيان واضحاً جداً
       st.dataframe(summary_df, use_container_width=True, hide_index=True)
       st.markdown("---")
 
-    # بقية مؤشرات الداشبورد وجداول الاستعراض
     total_records = len(filtered_df)
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
     with col_kpi1:
@@ -1058,6 +1041,110 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.dataframe(filtered_df, use_container_width=True)
 
+    # ==================== قسم الحذف (مقتصر على حساب الـ Admin فقط) ====================
+    if st.session_state.role == "admin":
+      st.markdown("---")
+      st.markdown("### 🗑️ لوحة التحكم الإدارية (حذف السجلات)")
+      st.error(
+          "⚠️ تنبيه هامة: خيار الحذف متاح فقط لحساب المشرف (Admin) ويقوم بحذف"
+          " البيانات نهائياً من ملف الأكسل."
+      )
+
+      # تحديد عمود الرقم القومي المناسب حسب الشيت الحالي
+      id_col_target = (
+          "الرقم القومى"
+          if sheet_to_show == "المشورة الاسرية للحامل"
+          else "الرقم القومى للام"
+      )
+
+      del_col1, del_col2 = st.columns(2)
+
+      with del_col1:
+        st.markdown("#### طريقة 1: الحذف برقم القومي")
+        nat_id_to_delete = st.text_input(
+            "أدخل الرقم القومي المراد حذفه بالكامل:",
+            max_chars=14,
+            key="admin_del_nat_id",
+        )
+        if st.button("🗑️ حذف السجل بالرقم القومي"):
+          if nat_id_to_delete and len(nat_id_to_delete) == 14:
+            try:
+              excel_file_obj = pd.ExcelFile(EXCEL_FILE)
+              all_sheets_data = {
+                  s: pd.read_excel(excel_file_obj, sheet_name=s, dtype=str)
+                  for s in excel_file_obj.sheet_names
+              }
+
+              if sheet_to_show in all_sheets_data:
+                current_sheet_df = all_sheets_data[sheet_to_show]
+                if id_col_target in current_sheet_df.columns:
+                  initial_len = len(current_sheet_df)
+                  # تصفية الباقي (حذف الأسطر التي تطابق الرقم القومي)
+                  current_sheet_df = current_sheet_df[
+                      current_sheet_df[id_col_target].astype(str).str.strip()
+                      != nat_id_to_delete.strip()
+                  ]
+                  deleted_count = initial_len - len(current_sheet_df)
+
+                  if deleted_count > 0:
+                    all_sheets_data[sheet_to_show] = current_sheet_df
+                    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                      for s_name, s_df in all_sheets_data.items():
+                        s_df.to_excel(writer, sheet_name=s_name, index=False)
+                    st.success(
+                        f"تم حذف عدد ({deleted_count}) سجل بالرقم القومي بنجاح!"
+                        " ✨"
+                    )
+                    st.rerun()
+                  else:
+                    st.warning("لم يتم العثور على سجل بهذا الرقم القومي في الشيت"
+                               " الحالي.")
+                else:
+                  st.error(
+                      f"عمود الرقم القومي ({id_col_target}) غير موجود في هذا"
+                      " الشيت."
+                  )
+            except Exception as e:
+              st.error(f"حدث خطأ أثناء عملية الحذف: {e}")
+          else:
+            st.warning("يرجى إدخال رقم قومي صحيح يتكون من 14 رقماً.")
+
+      with del_col2:
+        st.markdown("#### طريقة 2: الحذف المباشر برقم الصف (Index)")
+        row_idx_to_delete = st.number_input(
+            "أدخل ترتيب الصف (Index) المراد حذفه:",
+            min_value=0,
+            max_value=max(0, len(df_view) - 1),
+            step=1,
+            key="admin_del_row_idx",
+        )
+        if st.button("🗑️ حذف هذا الصف بالتحديد"):
+          try:
+            excel_file_obj = pd.ExcelFile(EXCEL_FILE)
+            all_sheets_data = {
+                s: pd.read_excel(excel_file_obj, sheet_name=s, dtype=str)
+                for s in excel_file_obj.sheet_names
+            }
+
+            if sheet_to_show in all_sheets_data:
+              target_df = all_sheets_data[sheet_to_show]
+              if row_idx_to_delete < len(target_df):
+                target_df = target_df.drop(target_df.index[row_idx_to_delete])
+                all_sheets_data[sheet_to_show] = target_df
+
+                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
+                  for s_name, s_df in all_sheets_data.items():
+                    s_df.to_excel(writer, sheet_name=s_name, index=False)
+                st.success(
+                    f"تم حذف الصف رقم ({row_idx_to_delete}) بنجاح من الشيت! ✨"
+                )
+                st.rerun()
+              else:
+                st.error("رقم الصف المطلوب غير موجود بالجدول.")
+          except Exception as e:
+            st.error(f"حدث خطأ أثناء حذف الصف: {e}")
+
+    st.markdown("---")
     csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
         label="📥 تحميل البيانات المعروضة (CSV / Excel)",
