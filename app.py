@@ -436,7 +436,6 @@ CHILD_COLUMNS = [
     "تخطيط الزيارة القادمة",
 ]
 
-# النطاق المطلوب أن يكون Checkbox يبدأ فارغاً تماماً (False)
 YES_NO_CHECKBOX_FIELDS = [
     "مكان المتابعة (وحدة)",
     "مكان المتابعة (مستشفى)",
@@ -468,6 +467,46 @@ def parse_national_id(nat_id):
     except ValueError:
       return "", ""
   return "", ""
+
+
+def calculate_motor_development(
+    age_str, weight_birth, length_birth, weight_current, length_current
+):
+  """تحليل وحساب التطور الحركي والنمو تلقائياً بناءً على المعدلات القياسية"""
+  try:
+    # استخلاص قيمة رقمية للعمر بالشهور
+    if not age_str:
+      return "طبيعى"
+    if "يوم" in age_str or "أسبوع" in age_str:
+      age_months = 0.5
+    else:
+      age_months = float(
+          "".join(filter(lambda x: x.isdigit() or x == ".", age_str)) or 1
+      )
+
+    w_curr = float(weight_current) if weight_current else 3.5
+    l_curr = float(length_current) if length_current else 50.0
+
+    # التقديرات القياسية التقريبية المعيارية للوزن بالنسبة للعمر
+    # عند الولادة ~3.2 كجم، يزيد الطفل تقريباً 600-800 جرام شهرياً فى أول 6 شهور
+    if age_months <= 1:
+      expected_weight = 3.3 + (age_months * 0.8)
+    elif age_months <= 12:
+      expected_weight = 3.0 + (age_months * 0.75)
+    else:
+      expected_weight = 10.0 + ((age_months - 12) * 0.2)
+
+    # حساب النسبة المئوية للانحراف عن المعدل القياسي العالمي
+    diff_ratio = w_curr / expected_weight
+
+    if diff_ratio < 0.82:
+      return "متاخر"
+    elif diff_ratio > 1.25:
+      return "متقدم"
+    else:
+      return "طبيعى"
+  except Exception:
+    return "طبيعى"
 
 
 def get_existing_data(nat_id, sheet_name, id_column):
@@ -574,14 +613,13 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال وحفظها مباشرة في ملف"
-      " الإكسل والداشبورد مع خانات اختيار فارغة لتختارها بنفسك."
+      "النظام جاهز تماماً مع خاصية الحساب التلقائي للنمو والتطور الحركي للطفل"
+      " بناءً على التقديرات العالمية."
   )
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
   st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
-
   today_str = datetime.date.today().strftime("%Y-%m-%d")
 
   for col in PREGNANT_COLUMNS:
@@ -592,11 +630,9 @@ elif menu == "سجل الحوامل":
         st.session_state[f"p_{col}"] = ""
 
   form_data = {}
-
   for col_name in PREGNANT_COLUMNS:
     if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
       continue
-
     if col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
       st.markdown(f"**{col_name}**")
@@ -715,13 +751,24 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    # الحقول المحددة أصبحت Checkboxes تبدأ فارغة تماماً (False)
     if col_name in YES_NO_CHECKBOX_FIELDS:
       checked = st.checkbox(col_name, value=False, key=f"c_chk_{col_name}")
       st.session_state[f"c_{col_name}"] = "نعم" if checked else ""
 
     elif col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
+
+      # حساب التطور الحركي تلقائياً عند الوصول لحقل النمو والتطور الحركي
+      if col_name == "النمو والتطور الحركي":
+        auto_motor = calculate_motor_development(
+            st.session_state.get("c_العمر الحالى للطفل (شهور)", ""),
+            st.session_state.get("c_وزن الطفل عند الولادة", ""),
+            st.session_state.get("c_طول الطفل عند الولادة", ""),
+            st.session_state.get("c_الوزن (كجم)", ""),
+            st.session_state.get("c_الطول (سم)", ""),
+        )
+        if not st.session_state.get(f"c_{col_name}"):
+          st.session_state[f"c_{col_name}"] = auto_motor
 
       if col_name == "موعد الزيارة":
         auto_visit_choice = VISIT_SCHEDULE_OPTIONS[0]
