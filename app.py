@@ -575,8 +575,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "لوحة المؤشرات والداشبورد مهيأة بالكامل مع فلترة زمنية مرنة (من تاريخ ... إلى"
-      " تاريخ)."
+      "لوحة المؤشرات والداشبورد مهيأة بالكامل مع ختارة مستقلة لبداية ونهاية"
+      " الفترة."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -904,7 +904,7 @@ elif menu == "سجل الأطفال":
         df.to_excel(writer, sheet_name=s, index=False)
     st.success("تم حفظ بيانات الطفل بنجاح! ✨")
 
-# ==================== 4. استعراض البيانات والداشبورد (المحدث والمطور) ====================
+# ==================== 4. استعراض البيانات والداشبورد (المحدث بدقة) ====================
 elif menu == "استعراض البيانات والداشبورد":
   st.markdown(
       "<h2>📊 لوحة المؤشرات واستعراض البيانات المتطورة</h2>",
@@ -916,8 +916,8 @@ elif menu == "استعراض البيانات والداشبورد":
     sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
     df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
 
-    # --- فلتر التاريخ المتطور (من تاريخ ... إلى تاريخ) ---
-    st.markdown("### 📅 فلترة البيانات بالفترة الزمنية (من - إلى)")
+    # --- فلتر التاريخ المستقل (من تاريخ ... إلى تاريخ في خانتين منفصلتين) ---
+    st.markdown("### 📅 تحديد فترة البحث والفلترة الزمنية")
 
     date_col = (
         "تاريخ الزيارة" if "تاريخ الزيارة" in df_view.columns else "تاريخ التسجيل"
@@ -925,7 +925,6 @@ elif menu == "استعراض البيانات والداشبورد":
 
     if not df_view.empty and date_col in df_view.columns:
       try:
-        # استخراج تواريخ صالحة للفلترة
         df_view["_temp_date"] = pd.to_datetime(
             df_view[date_col], errors="coerce"
         ).dt.date
@@ -938,22 +937,22 @@ elif menu == "استعراض البيانات والداشبورد":
           min_d = datetime.date.today()
           max_d = datetime.date.today()
 
-        # أداة تحديد الفترة (من - إلى)
-        date_range = st.date_input(
-            "حدد الفترة الزمنية المطلوبة للاستعلام (من تاريخ ⬅️ إلى تاريخ):",
-            value=(min_d, max_d),
-            key="dashboard_date_range",
-        )
+        # خانتان منفصلتان لتحديد بداية ونهاية الفترة
+        col_start, col_end = st.columns(2)
+        with col_start:
+          start_date = st.date_input(
+              "📅 من تاريخ:", value=min_d, key="filter_start_date"
+          )
+        with col_end:
+          end_date = st.date_input(
+              "📅 إلى تاريخ:", value=max_d, key="filter_end_date"
+          )
 
-        if isinstance(date_range, tuple) and len(date_range) == 2:
-          start_date, end_date = date_range
-          filtered_df = df_view[
-              (df_view["_temp_date"] >= start_date)
-              & (df_view["_temp_date"] <= end_date)
-          ]
-        else:
-          filtered_df = df_view.copy()
-
+        # فلترة البيانات بناءً على الخانتين
+        filtered_df = df_view[
+            (df_view["_temp_date"] >= start_date)
+            & (df_view["_temp_date"] <= end_date)
+        ].copy()
         filtered_df = filtered_df.drop(columns=["_temp_date"], errors="ignore")
       except Exception:
         filtered_df = df_view.copy()
@@ -962,7 +961,7 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # لو خاص بسجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً للفترة المحددة
+    # لو خاص بسجل الأطفال، نعرض جدول المؤشرات الإحصائية بدقة تامة
     if sheet_to_show == "سجل المشورة للاطفال":
       st.markdown(
           "### 👶 جدول مؤشرات الأداء والخدمات للأطفال (خلال الفترة المحددة)"
@@ -970,44 +969,32 @@ elif menu == "استعراض البيانات والداشبورد":
 
       total_child_cases = len(filtered_df)
 
-      incubator_count = 0
-      if "دخول الحضانة" in filtered_df.columns:
-        incubator_count = (
-            filtered_df["دخول الحضانة"].str.strip().eq("تم").sum()
-        )
+      # دالة مساعدة لحساب القيم بدقة بغض النظر عن المسافات أو حالة الأحرف
+      def count_match(df, col_name, target_val):
+        if col_name in df.columns and not df.empty:
+          return (
+              df[col_name]
+              .fillna("")
+              .astype(str)
+              .str.strip()
+              .eq(target_val)
+              .sum()
+          )
+        return 0
 
-      skin_contact_count = 0
-      if "ملامسة الجلد فى الساعة الذهبية الأولى" in filtered_df.columns:
-        skin_contact_count = (
-            filtered_df["ملامسة الجلد فى الساعة الذهبية الأولى"]
-            .str.strip()
-            .eq("تم")
-            .sum()
-        )
-
-      bf_golden_count = 0
-      if "الرضاعة الطبيعية فى الساعة الذهبية الأولى" in filtered_df.columns:
-        bf_golden_count = (
-            filtered_df["الرضاعة الطبيعية فى الساعة الذهبية الأولى"]
-            .str.strip()
-            .eq("تم")
-            .sum()
-        )
-
-      exclusive_bf_count = 0
-      if "رضاعة طبيعية مطلقة" in filtered_df.columns:
-        exclusive_bf_count = (
-            filtered_df["رضاعة طبيعية مطلقة"].str.strip().eq("تم").sum()
-        )
-
-      family_planning_count = 0
-      if "تحويل الى عيادة تنظيم الاسره" in filtered_df.columns:
-        family_planning_count = (
-            filtered_df["تحويل الى عيادة تنظيم الاسره"]
-            .str.strip()
-            .eq("تم")
-            .sum()
-        )
+      incubator_count = count_match(filtered_df, "دخول الحضانة", "تم")
+      skin_contact_count = count_match(
+          filtered_df, "ملامسة الجلد فى الساعة الذهبية الأولى", "تم"
+      )
+      bf_golden_count = count_match(
+          filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
+      )
+      exclusive_bf_count = count_match(
+          filtered_df, "رضاعة طبيعية مطلقة", "تم"
+      )
+      family_planning_count = count_match(
+          filtered_df, "تحويل الى عيادة تنظيم الاسره", "تم"
+      )
 
       summary_kpi_data = {
           "مؤشر الأداء / الخدمة": [
@@ -1019,12 +1006,12 @@ elif menu == "استعراض البيانات والداشبورد":
               "عدد حالات التحويل إلى عيادة تنظيم الأسرة",
           ],
           "العدد الإجمالي خلال الفترة": [
-              total_child_cases,
-              incubator_count,
-              skin_contact_count,
-              bf_golden_count,
-              exclusive_bf_count,
-              family_planning_count,
+              int(total_child_cases),
+              int(incubator_count),
+              int(skin_contact_count),
+              int(bf_golden_count),
+              int(exclusive_bf_count),
+              int(family_planning_count),
           ],
       }
       summary_df = pd.DataFrame(summary_kpi_data)
