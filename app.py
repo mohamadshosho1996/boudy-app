@@ -168,6 +168,7 @@ DROPDOWN_OPTIONS = {
         "حدوث مشكلات خلال الولادة “الولادة المتعسرة أو الحمل الحرج”.",
         "وجود عيب خلقي يمنع الطفل عن التنفس أو الرضاعة بشكل طبيعي.",
     ],
+    "موعد الزيارة": VISIT_SCHEDULE_OPTIONS,
     "رضاعة طبيعية مع سوائل وأعشاب": ["تم", "لم يتم"],
     "رضاعة طبيعية مع صناعي": ["تم", "لم يتم"],
     "رضاعة لبن صناعي": ["تم", "لم يتم"],
@@ -353,17 +354,28 @@ YES_NO_CHECKBOX_FIELDS = [
     "مكان المتابعة (اخرى)",
     "مصدر الاحالة(مستشفى الولادة)",
     "مصدر الاحالة (عيادة خاصة)",
-    "مصدر الاحالة(عيادة التطعيمات)",
+    "مصدر الاحالة (عيادة التطعيمات)",
     "مصدر الاحالة(نصيحة)",
 ]
 
 
+def clean_digits(val, max_len=None):
+  """تنظيف النصوص والأرقام سواء تم إدخالها صوتياً أو كتابياً واستخلاص الأرقام فقط"""
+  if not val:
+    return ""
+  digits = "".join(filter(str.isdigit, str(val)))
+  if max_len:
+    return digits[:max_len]
+  return digits
+
+
 def parse_national_id(nat_id):
-  if nat_id and len(nat_id) == 14 and nat_id.isdigit():
-    century_code = int(nat_id[0])
-    year_digits = int(nat_id[1:3])
-    month = int(nat_id[3:5])
-    day = int(nat_id[5:7])
+  clean_id = clean_digits(nat_id, 14)
+  if len(clean_id) == 14:
+    century_code = int(clean_id[0])
+    year_digits = int(clean_id[1:3])
+    month = int(clean_id[3:5])
+    day = int(clean_id[5:7])
     century = 2000 if century_code == 3 else 1900
     birth_year = century + year_digits
     try:
@@ -415,13 +427,14 @@ def calculate_motor_development(
 
 
 def get_existing_data(nat_id, sheet_name, id_column):
-  if os.path.exists(EXCEL_FILE) and nat_id and len(nat_id) == 14:
+  clean_id = clean_digits(nat_id, 14)
+  if os.path.exists(EXCEL_FILE) and len(clean_id) == 14:
     try:
       excel = pd.ExcelFile(EXCEL_FILE)
       for s in excel.sheet_names:
         df = pd.read_excel(excel, sheet_name=s, dtype=str)
         if id_column in df.columns:
-          match = df[df[id_column] == nat_id]
+          match = df[df[id_column].astype(str).str.strip() == clean_id]
           if not match.empty:
             return match.iloc[-1].to_dict()
     except Exception:
@@ -518,8 +531,9 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تفعيل الحسابات التلقائية (موعد الزيارة، محيط الرأس، وتخطيط الزيارة"
-      " القادمة) وتحويل مصدر الإحالة إلى Checkbox بنجاح."
+      "تم تحديث الفورمات التلقائي للأرقام القومية وأرقام الموبايل (سواء إدخال"
+      " صوتي أو كتابي)، وتطوير معادلة حساب محيط الرأس بناءً على الطول والوزن"
+      " عند الولادة والطول والوزن الحالي وعمر الطفل بنجاح."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -555,13 +569,17 @@ elif menu == "سجل الحوامل":
       st.session_state[f"p_{col_name}"] = chosen_choice
     else:
       if col_name == "الرقم القومى":
-        form_data[col_name] = st.text_input(
-            col_name, max_chars=14, key=f"p_{col_name}"
-        )
-        if form_data[col_name] and len(form_data[col_name]) == 14:
-          _, calc_age = parse_national_id(form_data[col_name])
+        raw_val = st.text_input(col_name, key=f"p_{col_name}")
+        cleaned_val = clean_digits(raw_val, 14)
+        form_data[col_name] = cleaned_val
+        if len(cleaned_val) == 14:
+          _, calc_age = parse_national_id(cleaned_val)
           if calc_age:
             st.session_state["p_العمر الحالى"] = calc_age
+      elif col_name == "رقم الموبايل":
+        raw_val = st.text_input(col_name, key=f"p_{col_name}")
+        cleaned_val = clean_digits(raw_val, 11)
+        form_data[col_name] = cleaned_val
       elif col_name == "العمر الحالى":
         form_data[col_name] = st.text_input(
             f"{col_name} [محسوب تلقائياً من الرقم القومي]",
@@ -626,18 +644,19 @@ elif menu == "سجل الأطفال":
       else:
         st.session_state[f"c_{col}"] = ""
 
-  nat_id_mom_input = st.text_input(
-      "الرقم القومى للام (اختياري)", max_chars=14, key="c_الرقم القومى للام_input"
+  raw_nat_id_mom = st.text_input(
+      "الرقم القومى للام (اختياري)", key="c_الرقم القومى للام_input"
   )
+  nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
   if nat_id_mom_input:
     st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
 
-  if nat_id_mom_input and len(nat_id_mom_input) == 14:
+  if len(nat_id_mom_input) == 14:
     b_date_mom, _ = parse_national_id(nat_id_mom_input)
     if b_date_mom and not st.session_state.get("c_تاريخ ميلاد الام"):
       st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
-  if nat_id_mom_input and len(nat_id_mom_input) == 14:
+  if len(nat_id_mom_input) == 14:
     if st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
       found_data = get_existing_data(
           nat_id_mom_input, "سجل المشورة للاطفال", "الرقم القومى للام"
@@ -764,7 +783,13 @@ elif menu == "سجل الأطفال":
       st.session_state[f"c_{col_name}"] = chosen_choice
 
     else:
-      if col_name == "تاريخ ميلاد الام":
+      if col_name in ["الرقم القومى للام", "الرقم القومى للاب"]:
+        raw_val = st.text_input(col_name, key=f"c_{col_name}")
+        st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 14)
+      elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
+        raw_val = st.text_input(col_name, key=f"c_{col_name}")
+        st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 11)
+      elif col_name == "تاريخ ميلاد الام":
         st.text_input(
             f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]",
             key=f"c_{col_name}",
@@ -839,17 +864,35 @@ elif menu == "سجل الأطفال":
 
       elif col_name == "محيط الرأس (سم)":
         try:
-          w_curr = st.session_state.get("c_الوزن (كجم)", "")
-          l_curr = st.session_state.get("c_الطول (سم)", "")
-          if w_curr and l_curr:
-            calc_head = round(
-                35 + (float(l_curr) * 0.1) + (float(w_curr) * 0.5), 1
+          w_birth = float(
+              st.session_state.get("c_وزن الطفل عند الولادة", "3.0") or 3.0
+          )
+          l_birth = float(
+              st.session_state.get("c_طول الطفل عند الولادة", "50.0") or 50.0
+          )
+          w_curr = float(st.session_state.get("c_الوزن (كجم)", "3.5") or 3.5)
+          l_curr = float(st.session_state.get("c_الطول (سم)", "52.0") or 52.0)
+          age_str = st.session_state.get("c_العمر الحالى للطفل (شهور)", "1")
+
+          if "يوم" in age_str or "أسبوع" in age_str:
+            age_m = 0.5
+          else:
+            age_m = float(
+                "".join(filter(lambda x: x.isdigit() or x == ".", age_str))
+                or 1.0
             )
-            st.session_state[f"c_{col_name}"] = str(calc_head)
+
+          # معادلة حساب محيط الرأس المتقدمة بالاعتماد على متغيرات الولادة والحالي والعمر
+          base_head = (l_birth * 0.35) + (w_birth * 0.8) + 15.0
+          growth_factor = (l_curr * 0.1) + (w_curr * 0.4) + (age_m * 0.5)
+          calc_head = round((base_head + growth_factor) / 2.0 + 10.0, 1)
+
+          st.session_state[f"c_{col_name}"] = str(calc_head)
         except Exception:
           pass
+
         st.text_input(
-            f"{col_name} [محسوب تلقائياً بناءً على الوزن والطول الحاليين]",
+            f"{col_name} [محسوب تلقائياً من بيانات الولادة، الحالي، وعمر الطفل]",
             key=f"c_{col_name}",
         )
 
@@ -1124,7 +1167,8 @@ elif menu == "استعراض البيانات والداشبورد":
             key="admin_del_nat_id",
         )
         if st.button("🗑️ حذف السجل بالرقم القومي"):
-          if nat_id_to_delete and len(nat_id_to_delete) == 14:
+          cleaned_del_id = clean_digits(nat_id_to_delete, 14)
+          if len(cleaned_del_id) == 14:
             try:
               excel_file_obj = pd.ExcelFile(EXCEL_FILE)
               all_sheets_data = {
@@ -1138,7 +1182,7 @@ elif menu == "استعراض البيانات والداشبورد":
                   initial_len = len(current_sheet_df)
                   current_sheet_df = current_sheet_df[
                       current_sheet_df[id_col_target].astype(str).str.strip()
-                      != nat_id_to_delete.strip()
+                      != cleaned_del_id
                   ]
                   deleted_count = initial_len - len(current_sheet_df)
 
