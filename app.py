@@ -436,7 +436,7 @@ CHILD_COLUMNS = [
     "تخطيط الزيارة القادمة",
 ]
 
-# النطاق المطلوب تحويله إلى Checkbox بحيث يظهر "نعم" عند التحديد
+# النطاق المطلوب أن يكون Checkbox يبدأ فارغاً تماماً (False)
 YES_NO_CHECKBOX_FIELDS = [
     "مكان المتابعة (وحدة)",
     "مكان المتابعة (مستشفى)",
@@ -575,67 +575,32 @@ if menu == "الصفحة الرئيسية":
   )
   st.write(
       "النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال وحفظها مباشرة في ملف"
-      " الإكسل والداشبورد باستخدام مربعات الاختيار المحدثة."
+      " الإكسل والداشبورد مع خانات اختيار فارغة لتختارها بنفسك."
   )
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
   st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
 
-  auto_fill_start = False
   today_str = datetime.date.today().strftime("%Y-%m-%d")
 
   for col in PREGNANT_COLUMNS:
     if f"p_{col}" not in st.session_state:
       if col == "التاريخ الزيارة":
         st.session_state[f"p_{col}"] = today_str
-      elif col in [
-          'مكملات "قبل": حمض الفوليك',
-          'مكملات "قبل": الحديد',
-          'مكملات "قبل": الكالسيوم',
-      ]:
-        st.session_state[f"p_{col}"] = "لا يوجد"
-      elif col == "ملاحظات/ توصيات":
-        st.session_state[f"p_{col}"] = "تم"
-      elif col == "التغذية السليمة":
-        auto_fill_start = True
-        st.session_state[f"p_{col}"] = "تم"
-      elif auto_fill_start:
-        if col == "ملاحظات/ توصيات":
-          auto_fill_start = False
-        st.session_state[f"p_{col}"] = "تم"
       else:
         st.session_state[f"p_{col}"] = ""
 
   form_data = {}
-  is_in_auto_range = False
 
   for col_name in PREGNANT_COLUMNS:
     if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
       continue
 
-    if col_name == "التغذية السليمة":
-      is_in_auto_range = True
-
     if col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"p_{col_name}", options[0])
-      chosen_choice = st.radio(
-          f"اختر {col_name}",
-          options,
-          index=(
-              options.index(current_val) if current_val in options else 0
-          ),
-          key=f"p_radio_{col_name}",
-          horizontal=True,
-      )
-      form_data[col_name] = chosen_choice
-      st.session_state[f"p_{col_name}"] = chosen_choice
-    elif is_in_auto_range:
-      options = ["تم", "لم يتم"]
-      st.markdown(f"**{col_name}**")
-      current_val = st.session_state.get(f"p_{col_name}", "تم")
       chosen_choice = st.radio(
           f"اختر {col_name}",
           options,
@@ -667,9 +632,6 @@ elif menu == "سجل الحوامل":
         )
       else:
         form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
-
-    if col_name == "ملاحظات/ توصيات":
-      is_in_auto_range = False
 
   if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
     final_form_data = {}
@@ -720,10 +682,6 @@ elif menu == "سجل الأطفال":
         st.session_state[f"c_{col}"] = today_str
       elif col == "تاريخ اول زيارة":
         st.session_state[f"c_{col}"] = today_str
-      elif col == "الخدمات الغير ملباه":
-        st.session_state[f"c_{col}"] = "لا يوجد"
-      elif col in ["التطور الإدراكي والمعرفي", "التطور اللغوي"]:
-        st.session_state[f"c_{col}"] = "طبيعى"
       else:
         st.session_state[f"c_{col}"] = ""
 
@@ -757,10 +715,9 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    # الحقول من "مكان المتابعة (وحدة)" وحتى "مصدر الاحالة(نصيحة)" أصبحت Checkboxes تظهر "نعم" أو ""
+    # الحقول المحددة أصبحت Checkboxes تبدأ فارغة تماماً (False)
     if col_name in YES_NO_CHECKBOX_FIELDS:
-      current_val = st.session_state.get(f"c_{col_name}", "") == "نعم"
-      checked = st.checkbox(col_name, value=current_val, key=f"c_chk_{col_name}")
+      checked = st.checkbox(col_name, value=False, key=f"c_chk_{col_name}")
       st.session_state[f"c_{col_name}"] = "نعم" if checked else ""
 
     elif col_name in DROPDOWN_OPTIONS:
@@ -813,12 +770,6 @@ elif menu == "سجل الأطفال":
         except Exception:
           pass
         st.session_state[f"c_{col_name}"] = auto_visit_choice
-
-      if (
-          col_name == "الخدمات الغير ملباه"
-          and not st.session_state.get(f"c_{col_name}")
-      ):
-        st.session_state[f"c_{col_name}"] = "لا يوجد"
 
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"c_{col_name}", options[0])
@@ -931,7 +882,7 @@ elif menu == "سجل الأطفال":
     for col in CHILD_COLUMNS:
       if col not in new_child_df.columns:
         new_child_df[col] = ""
-    new_child_df = new_child_df[CHILD_CHILD_COLUMNS if 'CHILD_CHILD_COLUMNS' in globals() else CHILD_COLUMNS]
+    new_child_df = new_child_df[CHILD_COLUMNS]
 
     if "سجل المشورة للاطفال" in all_dfs:
       all_dfs["سجل المشورة للاطفال"] = pd.concat(
