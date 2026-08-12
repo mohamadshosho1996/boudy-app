@@ -93,38 +93,6 @@ footer {visibility: hidden;}
     45% { transform: scale(1.15) rotate(-45deg); }
     60% { transform: scale(1) rotate(-45deg); }
 }
-
-/* تأثير تطاير القلوب الكثيرة */
-.floating-hearts-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 99999;
-    overflow: hidden;
-}
-.f-heart {
-    position: absolute;
-    color: #ff2255;
-    font-size: 24px;
-    animation: flyUp 3s linear forwards;
-    opacity: 0;
-}
-@keyframes flyUp {
-    0% {
-        transform: translateY(100vh) scale(0.5) rotate(0deg);
-        opacity: 1;
-    }
-    50% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-10vh) scale(1.5) rotate(360deg);
-        opacity: 0;
-    }
-}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -190,12 +158,12 @@ DROPDOWN_OPTIONS = {
     "أمراض مزمنة: السكر": ["تم", "لم يتم"],
     "أمراض مزمنة: إضطرابات الغدة": ["تم", "لم يتم"],
     "أمراض مزمنة: الأنيميا": ["تم", "لم يتم"],
-    "مكملات \"قبل\": حمض الفوليك": ["لا يوجد", "تم", "لم يتم"],
-    "مكملات \"قبل\": الحديد": ["لا يوجد", "تم", "لم يتم"],
-    "مكملات \"قبل\": الكالسيوم": ["لا يوجد", "تم", "لم يتم"],
-    "مكملات \"أثناء\": حمض الفوليك": ["تم", "لم يتم"],
-    "مكملات \"أثناء\": الحديد": ["تم", "لم يتم"],
-    "مكملات \"أثناء\": الكالسيوم": ["تم", "لم يتم"],
+    'مكملات "قبل": حمض الفوليك': ["لا يوجد", "تم", "لم يتم"],
+    'مكملات "قبل": الحديد': ["لا يوجد", "تم", "لم يتم"],
+    'مكملات "قبل": الكالسيوم': ["لا يوجد", "تم", "لم يتم"],
+    'مكملات "أثناء": حمض الفوليك': ["تم", "لم يتم"],
+    'مكملات "أثناء": الحديد': ["تم", "لم يتم"],
+    'مكملات "أثناء": الكالسيوم': ["تم", "لم يتم"],
     "التغذية السليمة": ["تم", "لم يتم"],
     "المكملات الغذائية": ["تم", "لم يتم"],
     "التمرينات الرياضية": ["تم", "لم يتم"],
@@ -472,9 +440,7 @@ def parse_national_id(nat_id):
 def calculate_motor_development(
     age_str, weight_birth, length_birth, weight_current, length_current
 ):
-  """تحليل وحساب التطور الحركي والنمو تلقائياً بناءً على المعدلات القياسية"""
   try:
-    # استخلاص قيمة رقمية للعمر بالشهور
     if not age_str:
       return "طبيعى"
     if "يوم" in age_str or "أسبوع" in age_str:
@@ -485,10 +451,7 @@ def calculate_motor_development(
       )
 
     w_curr = float(weight_current) if weight_current else 3.5
-    l_curr = float(length_current) if length_current else 50.0
 
-    # التقديرات القياسية التقريبية المعيارية للوزن بالنسبة للعمر
-    # عند الولادة ~3.2 كجم، يزيد الطفل تقريباً 600-800 جرام شهرياً فى أول 6 شهور
     if age_months <= 1:
       expected_weight = 3.3 + (age_months * 0.8)
     elif age_months <= 12:
@@ -496,7 +459,6 @@ def calculate_motor_development(
     else:
       expected_weight = 10.0 + ((age_months - 12) * 0.2)
 
-    # حساب النسبة المئوية للانحراف عن المعدل القياسي العالمي
     diff_ratio = w_curr / expected_weight
 
     if diff_ratio < 0.82:
@@ -613,8 +575,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "النظام جاهز تماماً مع خاصية الحساب التلقائي للنمو والتطور الحركي للطفل"
-      " بناءً على التقديرات العالمية."
+      "تم تحديث الداشبورد لتشمل جدول المؤشرات الإحصائية المتقدمة لسجلات الأطفال"
+      " مع فلترة زمنية كاملة حسب الفترات."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -758,7 +720,6 @@ elif menu == "سجل الأطفال":
     elif col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
 
-      # حساب التطور الحركي تلقائياً عند الوصول لحقل النمو والتطور الحركي
       if col_name == "النمو والتطور الحركي":
         auto_motor = calculate_motor_development(
             st.session_state.get("c_العمر الحالى للطفل (شهور)", ""),
@@ -943,15 +904,204 @@ elif menu == "سجل الأطفال":
         df.to_excel(writer, sheet_name=s, index=False)
     st.success("تم حفظ بيانات الطفل بنجاح! ✨")
 
-# ==================== 4. استعراض البيانات والداشبورد ====================
+# ==================== 4. استعراض البيانات والداشبورد (المحدث والمطور) ====================
 elif menu == "استعراض البيانات والداشبورد":
-  st.markdown("<h2>📊 لوحة المؤشرات واستعراض البيانات</h2>", unsafe_allow_html=True)
+  st.markdown(
+      "<h2>📊 لوحة المؤشرات واستعراض البيانات المتطورة</h2>",
+      unsafe_allow_html=True,
+  )
+
   if os.path.exists(EXCEL_FILE):
     excel = pd.ExcelFile(EXCEL_FILE)
     sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
     df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
-    st.dataframe(df_view, use_container_width=True)
-    st.info(f"إجمالي عدد الحالات المسجلة في هذا القسم: {len(df_view)}")
+
+    # --- فلتر التاريخ وزمني للفترة ---
+    st.markdown("### 📅 فلترة البيانات حسب الفترة الزمنية")
+    col_d1, col_d2 = st.columns(2)
+
+    # تحديد اسم عمود التاريخ حسب السجل المعروض
+    date_col = (
+        "تاريخ الزيارة" if "تاريخ الزيارة" in df_view.columns else "تاريخ التسجيل"
+    )
+
+    with col_d1:
+      use_date_filter = st.checkbox("تفعيل الفلترة بالتاريخ ⏳", value=False)
+
+    filtered_df = df_view.copy()
+
+    if use_date_filter and not filtered_df.empty:
+      # محاولة تحويل أعمدة التاريخ لتاريخ صحيح للفلترة
+      try:
+        filtered_df["_temp_date"] = pd.to_datetime(
+            filtered_df[date_col], errors="coerce"
+        ).dt.date
+        min_available_date = (
+            filtered_df["_temp_date"].min()
+            if not filtered_df["_temp_date"].isna().all()
+            else datetime.date.today()
+        )
+        max_available_date = (
+            filtered_df["_temp_date"].max()
+            if not filtered_df["_temp_date"].isna().all()
+            else datetime.date.today()
+        )
+
+        with col_d2:
+          date_range = st.date_input(
+              "اختر الفترة الزمنية:",
+              value=(min_available_date, max_available_date),
+          )
+
+        if isinstance(date_range, tuple) and len(date_range) == 2:
+          start_d, end_d = date_range
+          filtered_df = filtered_df[
+              (filtered_df["_temp_date"] >= start_d)
+              & (filtered_df["_temp_date"] <= end_d)
+          ]
+        filtered_df = filtered_df.drop(columns=["_temp_date"], errors="ignore")
+      except Exception:
+        pass
+
+    st.markdown("---")
+
+    # لو خاص بسجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً
+    if sheet_to_show == "سجل المشورة للاطفال":
+      st.markdown(
+          "### 👶 المؤشرات التحليلية المخصصة لسجلات الأطفال خلال الفترة"
+      )
+
+      # حساب الإحصائيات المطلوبة
+      total_child_cases = len(filtered_df)
+
+      incubator_count = 0
+      if "دخول الحضانة" in filtered_df.columns:
+        incubator_count = (
+            filtered_df["دخول الحضانة"].str.strip().eq("تم").sum()
+        )
+
+      skin_contact_count = 0
+      if "ملامسة الجلد فى الساعة الذهبية الأولى" in filtered_df.columns:
+        skin_contact_count = (
+            filtered_df["ملامسة الجلد فى الساعة الذهبية الأولى"]
+            .str.strip()
+            .eq("تم")
+            .sum()
+        )
+
+      bf_golden_count = 0
+      if "الرضاعة الطبيعية فى الساعة الذهبية الأولى" in filtered_df.columns:
+        bf_golden_count = (
+            filtered_df["الرضاعة الطبيعية فى الساعة الذهبية الأولى"]
+            .str.strip()
+            .eq("تم")
+            .sum()
+        )
+
+      exclusive_bf_count = 0
+      if "رضاعة طبيعية مطلقة" in filtered_df.columns:
+        exclusive_bf_count = (
+            filtered_df["رضاعة طبيعية مطلقة"].str.strip().eq("تم").sum()
+        )
+
+      family_planning_count = 0
+      if "تحويل الى عيادة تنظيم الاسره" in filtered_df.columns:
+        family_planning_count = (
+            filtered_df["تحويل الى عيادة تنظيم الاسره"]
+            .str.strip()
+            .eq("تم")
+            .sum()
+        )
+
+      # بناء جدول ملخص المؤشرات
+      summary_kpi_data = {
+          "مؤشر الأداء / الخدمة": [
+              "إجمالي عدد حالات الأطفال المسجلة",
+              "عدد الحالات التي دخلت الحضانات",
+              "عدد حالات ملامسة الجلد في الساعة الذهبية الأولى",
+              "عدد حالات الرضاعة الطبيعية في الساعة الذهبية الأولى",
+              "عدد حالات الرضاعة الطبيعية المطلقة",
+              "عدد حالات التحويل إلى عيادة تنظيم الأسرة",
+          ],
+          "العدد الإجمالي": [
+              total_child_cases,
+              incubator_count,
+              skin_contact_count,
+              bf_golden_count,
+              exclusive_bf_count,
+              family_planning_count,
+          ],
+      }
+      summary_df = pd.DataFrame(summary_kpi_data)
+      st.dataframe(summary_df, use_container_width=True, hide_index=True)
+      st.markdown("---")
+
+    # قسم المؤشرات السريعة العامة (KPIs)
+    total_records = len(filtered_df)
+    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+    with col_kpi1:
+      st.metric(
+          label="📁 إجمالي الحالات (بعد الفلترة)",
+          value=total_records,
+          delta="نشط",
+      )
+    with col_kpi2:
+      unique_users_count = (
+          filtered_df["اسم المستخدم"].nunique()
+          if "اسم المستخدم" in filtered_df.columns
+          else 0
+      )
+      st.metric(label="👩‍⚕️ عدد الطبيبات المشاركات", value=unique_users_count)
+    with col_kpi3:
+      st.metric(label="📑 القسم الحالي", value=sheet_to_show)
+
+    st.markdown("---")
+
+    # أدوات الفلترة والبحث الفوري
+    col_search, col_filter = st.columns(2)
+    with col_search:
+      search_query = st.text_input(
+          "🔍 بحث سريع إضافي (بالاسم، الرقم القومي، إلخ):"
+      )
+    with col_filter:
+      if "اسم المستخدم" in filtered_df.columns:
+        users_list = [
+            "الكل"
+        ] + list(filtered_df["اسم المستخدم"].dropna().unique())
+        selected_user_filter = st.selectbox(
+            "👩‍⚕️ تصفية حسب الطبيبة المسجلة:", users_list
+        )
+      else:
+        selected_user_filter = "الكل"
+
+    if selected_user_filter != "الكل":
+      filtered_df = filtered_df[
+          filtered_df["اسم المستخدم"] == selected_user_filter
+      ]
+
+    if search_query:
+      mask = filtered_df.apply(
+          lambda row: row.astype(str)
+          .str.contains(search_query, case=False, na=False)
+          .any(),
+          axis=1,
+      )
+      filtered_df = filtered_df[mask]
+
+    st.info(f"عدد السجلات المعروضة في الجدول التفصيلي: {len(filtered_df)}")
+
+    # عرض الجدول التفصيلي المخصص
+    st.dataframe(filtered_df, use_container_width=True)
+
+    # زر تحميل وتصدير البيانات كملف CSV
+    csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="📥 تحميل البيانات المعروضة (CSV / Excel)",
+        data=csv_data,
+        file_name=f"{sheet_to_show}_export.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
   else:
     st.warning("لا توجد بيانات مسجلة حتى الآن.")
 
