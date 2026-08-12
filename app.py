@@ -80,7 +80,6 @@ DROPDOWN_OPTIONS = {
         "مؤهل عالى",
     ],
     "الوظيفة": ["يعمل", "لا تعمل"],
-    "نوع الولادة": ["طبيعى", "قيصرى"],
     "قرابة بين الزوجين": ["نعم", "لا"],
     "وسيلة تنظيم الأسرة المستخدمة سابقا": [
         "توجد",
@@ -530,8 +529,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم معالجة الخطأ البرمجي في حقول إدخال أرقام الموبايل والأرقام القومية"
-      " وتأمين الجلسة بنجاح."
+      "تم تعديل حقل (نوع الولادة) ليكون بـ 3 خيارات (طبيعى - قيصرى - لا يوجد) في"
+      " صورة مربعات اختيار (Checkbox) متجاورة بنجاح."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -551,8 +550,43 @@ elif menu == "سجل الحوامل":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
       continue
 
-    # إضافة خيار "لا يوجد" كـ Checkbox بحيث تظل الخلية فارغة عند الضغط عليه
-    if col_name in DROPDOWN_OPTIONS:
+    # حقل نوع الولادة بـ 3 خيارات Checkbox متجاورة (طبيعى - قيصرى - لا يوجد)
+    if col_name == "نوع الولادة":
+      st.markdown(f"**{col_name}**")
+      current_val = st.session_state.get(f"p_{col_name}", "")
+
+      c_opt1, c_opt2, c_opt3 = st.columns(3)
+      with c_opt1:
+        chk_nat = st.checkbox(
+            "طبيعى",
+            value=(current_val == "طبيعى"),
+            key="p_birth_nat",
+        )
+      with c_opt2:
+        chk_ces = st.checkbox(
+            "قيصرى",
+            value=(current_val == "قيصرى"),
+            key="p_birth_ces",
+        )
+      with c_opt3:
+        chk_none = st.checkbox(
+            "لا يوجد",
+            value=(current_val == "لا يوجد" or current_val == ""),
+            key="p_birth_none",
+        )
+
+      selected_birth = ""
+      if chk_nat:
+        selected_birth = "طبيعى"
+      elif chk_ces:
+        selected_birth = "قيصرى"
+      elif chk_none:
+        selected_birth = "لا يوجد"
+
+      form_data[col_name] = selected_birth
+      st.session_state[f"p_{col_name}"] = selected_birth
+
+    elif col_name in DROPDOWN_OPTIONS:
       st.markdown(f"**{col_name}**")
       is_none = st.checkbox(
           "لا يوجد", value=False, key=f"p_chk_none_{col_name}"
@@ -681,7 +715,42 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    if col_name == "رضاعة طبيعية مطلقة":
+    # حقل نوع الولادة بـ 3 خيارات Checkbox متجاورة (طبيعى - قيصرى - لا يوجد)
+    if col_name == "نوع الولادة":
+      st.markdown(f"**{col_name}**")
+      current_val = st.session_state.get(f"c_{col_name}", "")
+
+      c_opt1, c_opt2, c_opt3 = st.columns(3)
+      with c_opt1:
+        chk_nat = st.checkbox(
+            "طبيعى",
+            value=(current_val == "طبيعى"),
+            key="c_birth_nat",
+        )
+      with c_opt2:
+        chk_ces = st.checkbox(
+            "قيصرى",
+            value=(current_val == "قيصرى"),
+            key="c_birth_ces",
+        )
+      with c_opt3:
+        chk_none = st.checkbox(
+            "لا يوجد",
+            value=(current_val == "لا يوجد" or current_val == ""),
+            key="c_birth_none",
+        )
+
+      selected_birth = ""
+      if chk_nat:
+        selected_birth = "طبيعى"
+      elif chk_ces:
+        selected_birth = "قيصرى"
+      elif chk_none:
+        selected_birth = "لا يوجد"
+
+      st.session_state[f"c_{col_name}"] = selected_birth
+
+    elif col_name == "رضاعة طبيعية مطلقة":
       st.markdown(f"**{col_name}**")
       c1, c2, c3 = st.columns(3)
       current_val = st.session_state.get(f"c_{col_name}", "")
