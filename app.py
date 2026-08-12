@@ -83,7 +83,6 @@ DROPDOWN_OPTIONS = {
     "قرابة بين الزوجين": ["نعم", "لا"],
     "وسيلة تنظيم الأسرة المستخدمة سابقا": [
         "توجد",
-        "لا يوجد",
         "مرغوب",
         "غير مرغوب",
     ],
@@ -102,9 +101,9 @@ DROPDOWN_OPTIONS = {
     "أمراض مزمنة: السكر": ["تم", "لم يتم"],
     "أمراض مزمنة: إضطرابات الغدة": ["تم", "لم يتم"],
     "أمراض مزمنة: الأنيميا": ["تم", "لم يتم"],
-    'مكملات "قبل": حمض الفوليك': ["لا يوجد", "تم", "لم يتم"],
-    'مكملات "قبل": الحديد': ["لا يوجد", "تم", "لم يتم"],
-    'مكملات "قبل": الكالسيوم': ["لا يوجد", "تم", "لم يتم"],
+    'مكملات "قبل": حمض الفوليك': ["تم", "لم يتم"],
+    'مكملات "قبل": الحديد': ["تم", "لم يتم"],
+    'مكملات "قبل": الكالسيوم': ["تم", "لم يتم"],
     'مكملات "أثناء": حمض الفوليك': ["تم", "لم يتم"],
     'مكملات "أثناء": الحديد': ["تم", "لم يتم"],
     'مكملات "أثناء": الكالسيوم': ["تم", "لم يتم"],
@@ -529,8 +528,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تعديل حقل (نوع الولادة) ليكون بـ 3 خيارات (طبيعى - قيصرى - لا يوجد) في"
-      " صورة مربعات اختيار (Checkbox) متجاورة بنجاح."
+      "تم إزالة خيار (لا يوجد) من جميع قوائم شيت الحوامل والإبقاء عليه فقط في"
+      " حقل (نوع الولادة)."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -588,27 +587,17 @@ elif menu == "سجل الحوامل":
 
     elif col_name in DROPDOWN_OPTIONS:
       st.markdown(f"**{col_name}**")
-      is_none = st.checkbox(
-          "لا يوجد", value=False, key=f"p_chk_none_{col_name}"
+      options = DROPDOWN_OPTIONS[col_name]
+      current_val = st.session_state.get(f"p_{col_name}", options[0])
+      chosen_choice = st.radio(
+          f"اختر {col_name}",
+          options,
+          index=(options.index(current_val) if current_val in options else 0),
+          key=f"p_radio_{col_name}",
+          horizontal=True,
       )
-
-      if is_none:
-        form_data[col_name] = ""
-        st.session_state[f"p_{col_name}"] = ""
-      else:
-        options = DROPDOWN_OPTIONS[col_name]
-        current_val = st.session_state.get(f"p_{col_name}", options[0])
-        chosen_choice = st.radio(
-            f"اختر {col_name}",
-            options,
-            index=(
-                options.index(current_val) if current_val in options else 0
-            ),
-            key=f"p_radio_{col_name}",
-            horizontal=True,
-        )
-        form_data[col_name] = chosen_choice
-        st.session_state[f"p_{col_name}"] = chosen_choice
+      form_data[col_name] = chosen_choice
+      st.session_state[f"p_{col_name}"] = chosen_choice
     else:
       if col_name == "الرقم القومى":
         raw_val = st.text_input(col_name, key=f"p_{col_name}")
@@ -849,9 +838,7 @@ elif menu == "سجل الأطفال":
       chosen_choice = st.radio(
           f"اختر {col_name}",
           options,
-          index=(
-              options.index(current_val) if current_val in options else 0
-          ),
+          index=(options.index(current_val) if current_val in options else 0),
           key=f"c_radio_{col_name}",
           horizontal=True,
       )
