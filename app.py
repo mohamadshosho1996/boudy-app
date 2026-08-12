@@ -168,7 +168,6 @@ DROPDOWN_OPTIONS = {
         "حدوث مشكلات خلال الولادة “الولادة المتعسرة أو الحمل الحرج”.",
         "وجود عيب خلقي يمنع الطفل عن التنفس أو الرضاعة بشكل طبيعي.",
     ],
-    "موعد الزيارة": VISIT_SCHEDULE_OPTIONS,
     "رضاعة طبيعية مع سوائل وأعشاب": ["تم", "لم يتم"],
     "رضاعة طبيعية مع صناعي": ["تم", "لم يتم"],
     "رضاعة لبن صناعي": ["تم", "لم يتم"],
@@ -354,7 +353,7 @@ YES_NO_CHECKBOX_FIELDS = [
     "مكان المتابعة (اخرى)",
     "مصدر الاحالة(مستشفى الولادة)",
     "مصدر الاحالة (عيادة خاصة)",
-    "مصدر الاحالة (عيادة التطعيمات)",
+    "مصدر الاحالة(عيادة التطعيمات)",
     "مصدر الاحالة(نصيحة)",
 ]
 
@@ -519,8 +518,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم إضافة خاصية حذف السجلات أو الأرقام القومية في الداشبورد لصلاحيات"
-      " الـ Admin فقط."
+      "تم تفعيل الحسابات التلقائية (موعد الزيارة، محيط الرأس، وتخطيط الزيارة"
+      " القادمة) وتحويل مصدر الإحالة إلى Checkbox بنجاح."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -837,6 +836,67 @@ elif menu == "سجل الأطفال":
             )
         except Exception:
           pass
+
+      elif col_name == "محيط الرأس (سم)":
+        try:
+          w_curr = st.session_state.get("c_الوزن (كجم)", "")
+          l_curr = st.session_state.get("c_الطول (سم)", "")
+          if w_curr and l_curr:
+            calc_head = round(
+                35 + (float(l_curr) * 0.1) + (float(w_curr) * 0.5), 1
+            )
+            st.session_state[f"c_{col_name}"] = str(calc_head)
+        except Exception:
+          pass
+        st.text_input(
+            f"{col_name} [محسوب تلقائياً بناءً على الوزن والطول الحاليين]",
+            key=f"c_{col_name}",
+        )
+
+      elif col_name == "تخطيط الزيارة القادمة":
+        try:
+          current_visit = st.session_state.get("c_موعد الزيارة", "")
+          reg_date_str = st.session_state.get("c_تاريخ الزيارة", today_str)
+          base_date = datetime.datetime.strptime(
+              reg_date_str.strip(), "%Y-%m-%d"
+          ).date()
+
+          days_to_add = 30
+          if current_visit in VISIT_SCHEDULE_OPTIONS:
+            idx = VISIT_SCHEDULE_OPTIONS.index(current_visit)
+            if idx + 1 < len(VISIT_SCHEDULE_OPTIONS):
+              next_visit_name = VISIT_SCHEDULE_OPTIONS[idx + 1]
+              if "شهر" in next_visit_name:
+                m_num = int(
+                    "".join(
+                        filter(lambda x: x.isdigit(), next_visit_name)
+                    )
+                    or 1
+                )
+                days_to_add = m_num * 30
+              elif "سنين" in next_visit_name or "سنتين" in next_visit_name:
+                if "نصف" in next_visit_name:
+                  days_to_add = 30 * 30
+                else:
+                  y_num = int(
+                      "".join(
+                          filter(lambda x: x.isdigit(), next_visit_name)
+                      )
+                      or 1
+                  )
+                  days_to_add = y_num * 365
+              else:
+                days_to_add = 30
+
+          next_visit_date = base_date + datetime.timedelta(days=days_to_add)
+          st.session_state[f"c_{col_name}"] = str(next_visit_date)
+        except Exception:
+          pass
+        st.text_input(
+            f"{col_name} [محسوب تلقائياً بناءً على الزيارة التالية والتاريخ]",
+            key=f"c_{col_name}",
+        )
+
       else:
         st.text_input(col_name, key=f"c_{col_name}")
 
@@ -888,7 +948,6 @@ elif menu == "استعراض البيانات والداشبورد":
     sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
     df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
 
-    # --- فلتر التاريخ المستقل (من تاريخ ... إلى تاريخ) ---
     st.markdown("### 📅 تحديد فترة البحث والفلترة الزمنية")
 
     date_col = (
@@ -1041,7 +1100,6 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.dataframe(filtered_df, use_container_width=True)
 
-    # ==================== قسم الحذف (مقتصر على حساب الـ Admin فقط) ====================
     if st.session_state.role == "admin":
       st.markdown("---")
       st.markdown("### 🗑️ لوحة التحكم الإدارية (حذف السجلات)")
@@ -1050,7 +1108,6 @@ elif menu == "استعراض البيانات والداشبورد":
           " البيانات نهائياً من ملف الأكسل."
       )
 
-      # تحديد عمود الرقم القومي المناسب حسب الشيت الحالي
       id_col_target = (
           "الرقم القومى"
           if sheet_to_show == "المشورة الاسرية للحامل"
@@ -1079,7 +1136,6 @@ elif menu == "استعراض البيانات والداشبورد":
                 current_sheet_df = all_sheets_data[sheet_to_show]
                 if id_col_target in current_sheet_df.columns:
                   initial_len = len(current_sheet_df)
-                  # تصفية الباقي (حذف الأسطر التي تطابق الرقم القومي)
                   current_sheet_df = current_sheet_df[
                       current_sheet_df[id_col_target].astype(str).str.strip()
                       != nat_id_to_delete.strip()
