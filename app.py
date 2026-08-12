@@ -575,8 +575,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تحديث الداشبورد لتشمل جدول المؤشرات الإحصائية المتقدمة لسجلات الأطفال"
-      " مع فلترة زمنية كاملة حسب الفترات."
+      "لوحة المؤشرات والداشبورد مهيأة بالكامل مع فلترة زمنية مرنة (من تاريخ ... إلى"
+      " تاريخ)."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -916,62 +916,58 @@ elif menu == "استعراض البيانات والداشبورد":
     sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
     df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
 
-    # --- فلتر التاريخ وزمني للفترة ---
-    st.markdown("### 📅 فلترة البيانات حسب الفترة الزمنية")
-    col_d1, col_d2 = st.columns(2)
+    # --- فلتر التاريخ المتطور (من تاريخ ... إلى تاريخ) ---
+    st.markdown("### 📅 فلترة البيانات بالفترة الزمنية (من - إلى)")
 
-    # تحديد اسم عمود التاريخ حسب السجل المعروض
     date_col = (
         "تاريخ الزيارة" if "تاريخ الزيارة" in df_view.columns else "تاريخ التسجيل"
     )
 
-    with col_d1:
-      use_date_filter = st.checkbox("تفعيل الفلترة بالتاريخ ⏳", value=False)
-
-    filtered_df = df_view.copy()
-
-    if use_date_filter and not filtered_df.empty:
-      # محاولة تحويل أعمدة التاريخ لتاريخ صحيح للفلترة
+    if not df_view.empty and date_col in df_view.columns:
       try:
-        filtered_df["_temp_date"] = pd.to_datetime(
-            filtered_df[date_col], errors="coerce"
+        # استخراج تواريخ صالحة للفلترة
+        df_view["_temp_date"] = pd.to_datetime(
+            df_view[date_col], errors="coerce"
         ).dt.date
-        min_available_date = (
-            filtered_df["_temp_date"].min()
-            if not filtered_df["_temp_date"].isna().all()
-            else datetime.date.today()
-        )
-        max_available_date = (
-            filtered_df["_temp_date"].max()
-            if not filtered_df["_temp_date"].isna().all()
-            else datetime.date.today()
-        )
+        valid_dates = df_view["_temp_date"].dropna()
 
-        with col_d2:
-          date_range = st.date_input(
-              "اختر الفترة الزمنية:",
-              value=(min_available_date, max_available_date),
-          )
+        if not valid_dates.empty:
+          min_d = valid_dates.min()
+          max_d = valid_dates.max()
+        else:
+          min_d = datetime.date.today()
+          max_d = datetime.date.today()
+
+        # أداة تحديد الفترة (من - إلى)
+        date_range = st.date_input(
+            "حدد الفترة الزمنية المطلوبة للاستعلام (من تاريخ ⬅️ إلى تاريخ):",
+            value=(min_d, max_d),
+            key="dashboard_date_range",
+        )
 
         if isinstance(date_range, tuple) and len(date_range) == 2:
-          start_d, end_d = date_range
-          filtered_df = filtered_df[
-              (filtered_df["_temp_date"] >= start_d)
-              & (filtered_df["_temp_date"] <= end_d)
+          start_date, end_date = date_range
+          filtered_df = df_view[
+              (df_view["_temp_date"] >= start_date)
+              & (df_view["_temp_date"] <= end_date)
           ]
+        else:
+          filtered_df = df_view.copy()
+
         filtered_df = filtered_df.drop(columns=["_temp_date"], errors="ignore")
       except Exception:
-        pass
+        filtered_df = df_view.copy()
+    else:
+      filtered_df = df_view.copy()
 
     st.markdown("---")
 
-    # لو خاص بسجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً
+    # لو خاص بسجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً للفترة المحددة
     if sheet_to_show == "سجل المشورة للاطفال":
       st.markdown(
-          "### 👶 المؤشرات التحليلية المخصصة لسجلات الأطفال خلال الفترة"
+          "### 👶 جدول مؤشرات الأداء والخدمات للأطفال (خلال الفترة المحددة)"
       )
 
-      # حساب الإحصائيات المطلوبة
       total_child_cases = len(filtered_df)
 
       incubator_count = 0
@@ -1013,7 +1009,6 @@ elif menu == "استعراض البيانات والداشبورد":
             .sum()
         )
 
-      # بناء جدول ملخص المؤشرات
       summary_kpi_data = {
           "مؤشر الأداء / الخدمة": [
               "إجمالي عدد حالات الأطفال المسجلة",
@@ -1023,7 +1018,7 @@ elif menu == "استعراض البيانات والداشبورد":
               "عدد حالات الرضاعة الطبيعية المطلقة",
               "عدد حالات التحويل إلى عيادة تنظيم الأسرة",
           ],
-          "العدد الإجمالي": [
+          "العدد الإجمالي خلال الفترة": [
               total_child_cases,
               incubator_count,
               skin_contact_count,
@@ -1041,7 +1036,7 @@ elif menu == "استعراض البيانات والداشبورد":
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
     with col_kpi1:
       st.metric(
-          label="📁 إجمالي الحالات (بعد الفلترة)",
+          label="📁 إجمالي الحالات (في الفترة المحددة)",
           value=total_records,
           delta="نشط",
       )
@@ -1057,7 +1052,7 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # أدوات الفلترة والبحث الفوري
+    # أدوات الفلترة والبحث الإضافي
     col_search, col_filter = st.columns(2)
     with col_search:
       search_query = st.text_input(
@@ -1096,9 +1091,9 @@ elif menu == "استعراض البيانات والداشبورد":
     # زر تحميل وتصدير البيانات كملف CSV
     csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
-        label="📥 تحميل البيانات المعروضة (CSV / Excel)",
+        label="📥 تحميل البيانات المعروضة بالفترة (CSV / Excel)",
         data=csv_data,
-        file_name=f"{sheet_to_show}_export.csv",
+        file_name=f"{sheet_to_show}_filtered_export.csv",
         mime="text/csv",
         use_container_width=True,
     )
