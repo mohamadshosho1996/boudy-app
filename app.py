@@ -520,8 +520,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "لوحة المؤشرات والداشبورد مهيأة بالكامل بجدول مبسط من عمودين يظهر فيه"
-      " 'البيان' و 'الرقم' بوضوح."
+      "لوحة المؤشرات والداشبورد مهيأة بالكامل لتعرض العناصر الـ 6 المطلوبة"
+      " بوضوح تام ضمن جدول البيان والرقم."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -904,9 +904,11 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # لو سجل الأطفال، نعرض جدول مؤشرات الأداء المبسط بحيث يكون "البيان" هو عمود أساسي واضح
+    # لو سجل الأطفال، نعرض جدول المؤشرات المطلوبة خصيصاً بالترتيب
     if sheet_to_show == "سجل المشورة للاطفال":
-      st.markdown("### 👶 ملخص مؤشرات الأداء والخدمات (6 صفوف أساسية)")
+      st.markdown(
+          "### 👶 ملخص مؤشرات الأداء والخدمات (البيانات المطلوبة للأسرة والطفل)"
+      )
 
       total_child_cases = len(filtered_df)
 
@@ -922,48 +924,48 @@ elif menu == "استعراض البيانات والداشبورد":
           )
         return 0
 
-      # استخراج أهم 6 مؤشرات أساسية
+      # حساب العناصر الـ 6 المحددة تماماً
       incubator_count = count_match(filtered_df, "دخول الحضانة", "تم")
-      exclusive_bf_count = count_match(
+      skin_contact_count = count_match(
+          filtered_df, "ملامسة الجلد فى الساعة الذهبية الأولى", "تم"
+      )
+      bf_golden_count = count_match(
+          filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
+      )
+      exclusive_bf_6m_count = count_match(
           filtered_df, "رضاعة طبيعية مطلقة", "تم"
       )
-      family_planning_count = count_match(
+      family_planning_child_count = count_match(
           filtered_df, "تحويل الى عيادة تنظيم الاسره", "تم"
       )
-      vitamin_d_count = count_match(
-          filtered_df, "إعطاء الجرعة اليومية من فيتامين د", "يوجد"
-      )
-      vaccine_count = count_match(
-          filtered_df, "أهمية الإلتزام بتطعيمات الطفل", "تم"
-      )
 
-      # إنشاء الجدول بحيث يصبح عمود "البيان" كعمود نصي صريح وظاهر
+      # إنشاء جدول البيانات بالـ 6 عناصر المطلوبة حصرياً
       summary_df = pd.DataFrame(
           {
               "البيان": [
                   "إجمالي عدد حالات الأطفال",
-                  "عدد الحالات التي دخلت الحضانة",
-                  "عدد حالات الرضاعة الطبيعية المطلقة",
-                  "عدد حالات التحويل لتنظيم الأسرة",
-                  "عدد حالات إعطاء فيتامين د",
-                  "عدد حالات التزام بتطعيمات الطفل",
+                  "عدد حالات دخول الحضانة",
+                  "عدد حالات ملامسة الجلد فى الساعة الذهبية الأولى",
+                  "عدد حالات الرضاعة الطبيعية فى الساعة الذهبية الأولى",
+                  "رضاعة طبيعية مطلقة 6 شهور",
+                  "عدد حالات تحويل الى عيادة تنظيم الاسره",
               ],
               "الرقم": [
                   int(total_child_cases),
                   int(incubator_count),
-                  int(exclusive_bf_count),
-                  int(family_planning_count),
-                  int(vitamin_d_count),
-                  int(vaccine_count),
+                  int(skin_contact_count),
+                  int(bf_golden_count),
+                  int(exclusive_bf_6m_count),
+                  int(family_planning_child_count),
               ],
           }
       )
 
-      # عرض الجدول مع إخفاء الـ index الافتراضي لتجنب الأرقام 0,1,2 وإظهار عمود البيان بوضوح
+      # عرض الجدول بدون إظهار أرقام الفهرس الجانبية (hide_index=True) ليكون عمود البيان واضحاً جداً
       st.dataframe(summary_df, use_container_width=True, hide_index=True)
       st.markdown("---")
 
-    # بقية الأدوات والفلاتر والجدول التفصيلي
+    # بقية مؤشرات الداشبورد وجداول الاستعراض
     total_records = len(filtered_df)
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
     with col_kpi1:
