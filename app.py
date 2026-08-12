@@ -169,7 +169,6 @@ DROPDOWN_OPTIONS = {
         "وجود عيب خلقي يمنع الطفل عن التنفس أو الرضاعة بشكل طبيعي.",
     ],
     "موعد الزيارة": VISIT_SCHEDULE_OPTIONS,
-    "رضاعة طبيعية مطلقة": ["تم", "لم يتم"],
     "رضاعة طبيعية مع سوائل وأعشاب": ["تم", "لم يتم"],
     "رضاعة طبيعية مع صناعي": ["تم", "لم يتم"],
     "رضاعة لبن صناعي": ["تم", "لم يتم"],
@@ -520,8 +519,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "لوحة المؤشرات والداشبورد مهيأة بالكامل لتعرض العناصر الـ 6 المطلوبة"
-      " بوضوح تام ضمن جدول البيان والرقم."
+      "تم تحديث حقل رضاعة طبيعية مطلقة ليعمل بمربعات اختيار (3 شهور، 4 شهور، 6"
+      " شهور) ويحفظ القيمة المختارة مباشرة في الأكسل."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -658,7 +657,45 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    if col_name in YES_NO_CHECKBOX_FIELDS:
+    # حقل رضاعة طبيعية مطلقة الجديد (Checkboxes)
+    if col_name == "رضاعة طبيعية مطلقة":
+      st.markdown(f"**{col_name}**")
+      c1, c2, c3 = st.columns(3)
+
+      # استرجاع القيمة الحالية من الجلسة
+      current_val = st.session_state.get(f"c_{col_name}", "")
+
+      with c1:
+        chk_3 = st.checkbox(
+            "3 شهور",
+            value=(current_val == "3 شهور"),
+            key="c_bf_ex_3",
+        )
+      with c2:
+        chk_4 = st.checkbox(
+            "4 شهور",
+            value=(current_val == "4 شهور"),
+            key="c_bf_ex_4",
+        )
+      with c3:
+        chk_6 = st.checkbox(
+            "6 شهور",
+            value=(current_val == "6 شهور"),
+            key="c_bf_ex_6",
+        )
+
+      # تحديد القيمة المختارة بناءً على الـ Checkbox المفعل
+      selected_bf_ex = ""
+      if chk_3:
+        selected_bf_ex = "3 شهور"
+      elif chk_4:
+        selected_bf_ex = "4 شهور"
+      elif chk_6:
+        selected_bf_ex = "6 شهور"
+
+      st.session_state[f"c_{col_name}"] = selected_bf_ex
+
+    elif col_name in YES_NO_CHECKBOX_FIELDS:
       checked = st.checkbox(col_name, value=False, key=f"c_chk_{col_name}")
       st.session_state[f"c_{col_name}"] = "نعم" if checked else ""
 
@@ -932,9 +969,18 @@ elif menu == "استعراض البيانات والداشبورد":
       bf_golden_count = count_match(
           filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
       )
-      exclusive_bf_6m_count = count_match(
-          filtered_df, "رضاعة طبيعية مطلقة", "تم"
-      )
+      # تجميع الحالات التي اختارت (3 شهور أو 4 شهور أو 6 شهور) في رضاعة طبيعية مطلقة
+      exclusive_bf_6m_count = 0
+      if "رضاعة طبيعية مطلقة" in filtered_df.columns and not filtered_df.empty:
+        exclusive_bf_6m_count = (
+            filtered_df["رضاعة طبيعية مطلقة"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .isin(["3 شهور", "4 شهور", "6 شهور"])
+            .sum()
+        )
+
       family_planning_child_count = count_match(
           filtered_df, "تحويل الى عيادة تنظيم الاسره", "تم"
       )
