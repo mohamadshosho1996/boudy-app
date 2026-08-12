@@ -530,10 +530,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تحديث الفورمات التلقائي للأرقام القومية وأرقام الموبايل (سواء إدخال"
-      " صوتي أو كتابي)، وتطوير معادلة حساب محيط الرأس بناءً على الطول والوزن"
-      " عند الولادة والطول والوزن الحالي وعمر الطفل بنجاح ومعالجة مشكلة حقول"
-      " المدخلات."
+      "تم معالجة الخطأ البرمجي في حقول إدخال أرقام الموبايل والأرقام القومية"
+      " وتأمين الجلسة بنجاح."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -782,10 +780,10 @@ elif menu == "سجل الأطفال":
 
     else:
       if col_name in ["الرقم القومى للام", "الرقم القومى للاب"]:
-        raw_val = st.text_input(col_name, key=f"c_{col_name}")
+        raw_val = st.text_input(col_name, key=f"c_{col_name}_raw")
         st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 14)
       elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
-        raw_val = st.text_input(col_name, key=f"c_{col_name}")
+        raw_val = st.text_input(col_name, key=f"c_{col_name}_raw")
         st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 11)
       elif col_name == "تاريخ ميلاد الام":
         st.text_input(
