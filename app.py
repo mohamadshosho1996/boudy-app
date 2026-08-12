@@ -11,7 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# تنسيق CSS مع تأثيرات تطاير القلوب الحمراء والقلب الكبير
 custom_css = """
 <style>
 .main .block-container {
@@ -39,60 +38,6 @@ h1, h2, h3 {
     color: #701A75;
 }
 footer {visibility: hidden;}
-
-/* تصميم القلب الأحمر الكبير النابض */
-.big-heart-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 20px 0;
-}
-.big-heart {
-    position: relative;
-    width: 160px;
-    height: 140px;
-    background-color: #ff3366;
-    transform: rotate(-45deg);
-    box-shadow: 0 10px 25px rgba(255, 51, 102, 0.5);
-    animation: heartbeat 1s infinite;
-}
-.big-heart::before,
-.big-heart::after {
-    content: "";
-    position: absolute;
-    width: 160px;
-    height: 140px;
-    background-color: #ff3366;
-    border-radius: 50%;
-}
-.big-heart::before {
-    top: -80px;
-    left: 0;
-}
-.big-heart::after {
-    left: 80px;
-    top: 0;
-}
-.heart-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(45deg);
-    color: white;
-    font-size: 22px;
-    font-weight: bold;
-    text-align: center;
-    width: 140px;
-    z-index: 10;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
-}
-@keyframes heartbeat {
-    0% { transform: scale(1) rotate(-45deg); }
-    15% { transform: scale(1.1) rotate(-45deg); }
-    30% { transform: scale(1) rotate(-45deg); }
-    45% { transform: scale(1.15) rotate(-45deg); }
-    60% { transform: scale(1) rotate(-45deg); }
-}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -574,9 +519,7 @@ if menu == "الصفحة الرئيسية":
       "<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>",
       unsafe_allow_html=True,
   )
-  st.write(
-      "لوحة المؤشرات والداشبورد مهيأة بالكامل مع عرض الأرقام بجانب كل بيان بدقة."
-  )
+  st.write("لوحة المؤشرات والداشبورد مهيأة بالكامل بجدول مبسط من عمودين و6 صفوف.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -906,7 +849,7 @@ elif menu == "سجل الأطفال":
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
   st.markdown(
-      "<h2>📊 لوحة المؤشرات واستعراض البيانات المتطورة</h2>",
+      "<h2>📊 لوحة المؤشرات واستعراض البيانات المبسطة</h2>",
       unsafe_allow_html=True,
   )
 
@@ -958,11 +901,9 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # لو سجل الأطفال، نعرض جدول مؤشرات الأداء والخدمات بالتفصيل وكل بيان أمامه رقمه
+    # لو سجل الأطفال، نعرض جدول مؤشرات الأداء المبسط (عمودين و 6 صفوف)
     if sheet_to_show == "سجل المشورة للاطفال":
-      st.markdown(
-          "### 👶 جدول مؤشرات الأداء والخدمات للأطفال (خلال الفترة المحددة)"
-      )
+      st.markdown("### 👶 ملخص مؤشرات الأداء والخدمات (6 صفوف أساسية)")
 
       total_child_cases = len(filtered_df)
 
@@ -978,14 +919,8 @@ elif menu == "استعراض البيانات والداشبورد":
           )
         return 0
 
-      # احتساب الأرقام لكل مؤشر بدقة قصوى
+      # استخراج أهم 6 مؤشرات أساسية
       incubator_count = count_match(filtered_df, "دخول الحضانة", "تم")
-      skin_contact_count = count_match(
-          filtered_df, "ملامسة الجلد فى الساعة الذهبية الأولى", "تم"
-      )
-      bf_golden_count = count_match(
-          filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
-      )
       exclusive_bf_count = count_match(
           filtered_df, "رضاعة طبيعية مطلقة", "تم"
       )
@@ -995,82 +930,60 @@ elif menu == "استعراض البيانات والداشبورد":
       vitamin_d_count = count_match(
           filtered_df, "إعطاء الجرعة اليومية من فيتامين د", "يوجد"
       )
-      iron_count = count_match(
-          filtered_df, "إعطاء الجرعة اليومية من الحديد", "يوجد"
-      )
       vaccine_count = count_match(
           filtered_df, "أهمية الإلتزام بتطعيمات الطفل", "تم"
       )
-      growth_card_count = count_match(
-          filtered_df,
-          "البطاقة الصحية وأهمية المتابعة الدورية ومنحنيات النمو",
-          "تم",
-      )
 
-      summary_kpi_data = {
-          "مؤشر الأداء / الخدمة المقدمة": [
-              "إجمالي عدد حالات الأطفال المسجلة",
-              "عدد الحالات التي دخلت الحضانات",
-              "عدد حالات ملامسة الجلد في الساعة الذهبية الأولى",
-              "عدد حالات الرضاعة الطبيعية في الساعة الذهبية الأولى",
+      # جدول من عمودين و 6 صفوف دقيقة
+      simple_kpi_data = {
+          "البيان": [
+              "إجمالي عدد حالات الأطفال",
+              "عدد الحالات التي دخلت الحضانة",
               "عدد حالات الرضاعة الطبيعية المطلقة",
-              "عدد حالات التحويل إلى عيادة تنظيم الأسرة",
-              "عدد حالات إعطاء الجرعة اليومية من فيتامين د",
-              "عدد حالات إعطاء الجرعة اليومية من الحديد",
-              "عدد حالات التوعية بالتطعيمات والالتزام بها",
-              "عدد حالات البطاقة الصحية ومتابعة منحنيات النمو",
+              "عدد حالات التحويل لتنظيم الأسرة",
+              "عدد حالات إعطاء فيتامين د",
+              "عدد حالات التزام بتطعيمات الطفل",
           ],
-          "العدد المقابل (الرقم)": [
+          "الرقم": [
               int(total_child_cases),
               int(incubator_count),
-              int(skin_contact_count),
-              int(bf_golden_count),
               int(exclusive_bf_count),
               int(family_planning_count),
               int(vitamin_d_count),
-              int(iron_count),
               int(vaccine_count),
-              int(growth_card_count),
           ],
       }
-      summary_df = pd.DataFrame(summary_kpi_data)
+      summary_df = pd.DataFrame(simple_kpi_data)
       st.dataframe(summary_df, use_container_width=True, hide_index=True)
       st.markdown("---")
 
-    # قسم المؤشرات السريعة العامة (KPIs)
+    # بقية الأدوات والفلاتر والجدول التفصيلي
     total_records = len(filtered_df)
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
     with col_kpi1:
-      st.metric(
-          label="📁 إجمالي الحالات (في الفترة المحددة)",
-          value=total_records,
-          delta="نشط",
-      )
+      st.metric(label="📁 إجمالي الحالات بالفترة", value=total_records)
     with col_kpi2:
       unique_users_count = (
           filtered_df["اسم المستخدم"].nunique()
           if "اسم المستخدم" in filtered_df.columns
           else 0
       )
-      st.metric(label="👩‍⚕️ عدد الطبيبات المشاركات", value=unique_users_count)
+      st.metric(label="👩‍⚕️ الطبيبات المشاركات", value=unique_users_count)
     with col_kpi3:
       st.metric(label="📑 القسم الحالي", value=sheet_to_show)
 
     st.markdown("---")
 
-    # أدوات الفلترة والبحث الإضافي
     col_search, col_filter = st.columns(2)
     with col_search:
-      search_query = st.text_input(
-          "🔍 بحث سريع إضافي (بالاسم، الرقم القومي، إلخ):"
-      )
+      search_query = st.text_input("🔍 بحث سريع إضافي:")
     with col_filter:
       if "اسم المستخدم" in filtered_df.columns:
         users_list = [
             "الكل"
         ] + list(filtered_df["اسم المستخدم"].dropna().unique())
         selected_user_filter = st.selectbox(
-            "👩‍⚕️ تصفية حسب الطبيبة المسجلة:", users_list
+            "👩‍⚕️ تصفية حسب الطبيبة:", users_list
         )
       else:
         selected_user_filter = "الكل"
@@ -1089,17 +1002,13 @@ elif menu == "استعراض البيانات والداشبورد":
       )
       filtered_df = filtered_df[mask]
 
-    st.info(f"عدد السجلات المعروضة في الجدول التفصيلي: {len(filtered_df)}")
-
-    # عرض الجدول التفصيلي المخصص
     st.dataframe(filtered_df, use_container_width=True)
 
-    # زر تحميل وتصدير البيانات كملف CSV
     csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
-        label="📥 تحميل البيانات المعروضة بالفترة (CSV / Excel)",
+        label="📥 تحميل البيانات المعروضة (CSV / Excel)",
         data=csv_data,
-        file_name=f"{sheet_to_show}_filtered_export.csv",
+        file_name=f"{sheet_to_show}_export.csv",
         mime="text/csv",
         use_container_width=True,
     )
@@ -1109,6 +1018,5 @@ elif menu == "استعراض البيانات والداشبورد":
 # ==================== 5. إدارة المستخدمين ====================
 elif menu == "إدارة المستخدمين" and st.session_state.role == "admin":
   st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
-  st.write("هنا يمكنك مراجعة حسابات الطبيبات والنظام المسجلة مسبقاً.")
   for k, v in DEFAULT_USERS.items():
     st.write(f"- **{v['name']}** | اسم المستخدم: `{k}` | الصلاحية: `{v['role']}`")
