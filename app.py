@@ -255,13 +255,6 @@ DROPDOWN_OPTIONS = {
         "حدوث مشكلات خلال الولادة “الولادة المتعسرة أو الحمل الحرج”.",
         "وجود عيب خلقي يمنع الطفل عن التنفس أو الرضاعة بشكل طبيعي.",
     ],
-    "مكان المتابعة (وحدة)": ["نعم", "لا"],
-    "مكان المتابعة (مستشفى)": ["نعم", "لا"],
-    "مكان المتابعة (اخرى)": ["نعم", "لا"],
-    "مصدر الاحالة(مستشفى الولادة)": ["نعم", "لا"],
-    "مصدر الاحالة (عيادة خاصة)": ["نعم", "لا"],
-    "مصدر الاحالة(عيادة التطعيمات)": ["نعم", "لا"],
-    "مصدر الاحالة(نصيحة)": ["نعم", "لا"],
     "موعد الزيارة": VISIT_SCHEDULE_OPTIONS,
     "رضاعة طبيعية مطلقة": ["تم", "لم يتم"],
     "رضاعة طبيعية مع سوائل وأعشاب": ["تم", "لم يتم"],
@@ -443,6 +436,17 @@ CHILD_COLUMNS = [
     "تخطيط الزيارة القادمة",
 ]
 
+# النطاق المطلوب تحويله إلى Checkbox بحيث يظهر "نعم" عند التحديد
+YES_NO_CHECKBOX_FIELDS = [
+    "مكان المتابعة (وحدة)",
+    "مكان المتابعة (مستشفى)",
+    "مكان المتابعة (اخرى)",
+    "مصدر الاحالة(مستشفى الولادة)",
+    "مصدر الاحالة (عيادة خاصة)",
+    "مصدر الاحالة(عيادة التطعيمات)",
+    "مصدر الاحالة(نصيحة)",
+]
+
 
 def parse_national_id(nat_id):
   if nat_id and len(nat_id) == 14 and nat_id.isdigit():
@@ -571,7 +575,7 @@ if menu == "الصفحة الرئيسية":
   )
   st.write(
       "النظام جاهز تماماً لتسجيل حالات الحوامل والأطفال وحفظها مباشرة في ملف"
-      " الإكسل والداشبورد."
+      " الإكسل والداشبورد باستخدام مربعات الاختيار المحدثة."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -613,56 +617,56 @@ elif menu == "سجل الحوامل":
     if col_name == "التغذية السليمة":
       is_in_auto_range = True
 
-    if col_name in [
-        'مكملات "قبل": حمض الفوليك',
-        'مكملات "قبل": الحديد',
-        'مكملات "قبل": الكالسيوم',
-    ]:
+    if col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
-      current_val = st.session_state.get(f"p_{col_name}", "لا يوجد")
-      idx = options.index(current_val) if current_val in options else 0
-      form_data[col_name] = st.selectbox(
-          col_name, options, index=idx, key=f"p_{col_name}"
+      st.markdown(f"**{col_name}**")
+      current_val = st.session_state.get(f"p_{col_name}", options[0])
+      chosen_choice = st.radio(
+          f"اختر {col_name}",
+          options,
+          index=(
+              options.index(current_val) if current_val in options else 0
+          ),
+          key=f"p_radio_{col_name}",
+          horizontal=True,
       )
-    elif is_in_auto_range and col_name in DROPDOWN_OPTIONS:
-      options = DROPDOWN_OPTIONS[col_name]
-      current_val = st.session_state.get(f"p_{col_name}", "تم")
-      idx = options.index(current_val) if current_val in options else 0
-      form_data[col_name] = st.selectbox(
-          col_name, options, index=idx, key=f"p_{col_name}"
-      )
+      form_data[col_name] = chosen_choice
+      st.session_state[f"p_{col_name}"] = chosen_choice
     elif is_in_auto_range:
-      form_data[col_name] = st.text_input(
-          col_name, value="تم", key=f"p_{col_name}"
+      options = ["تم", "لم يتم"]
+      st.markdown(f"**{col_name}**")
+      current_val = st.session_state.get(f"p_{col_name}", "تم")
+      chosen_choice = st.radio(
+          f"اختر {col_name}",
+          options,
+          index=(
+              options.index(current_val) if current_val in options else 0
+          ),
+          key=f"p_radio_{col_name}",
+          horizontal=True,
       )
+      form_data[col_name] = chosen_choice
+      st.session_state[f"p_{col_name}"] = chosen_choice
     else:
-      if col_name in DROPDOWN_OPTIONS:
-        options = DROPDOWN_OPTIONS[col_name]
-        current_val = st.session_state.get(f"p_{col_name}", options[0])
-        idx = options.index(current_val) if current_val in options else 0
-        form_data[col_name] = st.selectbox(
-            col_name, options, index=idx, key=f"p_{col_name}"
+      if col_name == "الرقم القومى":
+        form_data[col_name] = st.text_input(
+            col_name, max_chars=14, key=f"p_{col_name}"
+        )
+        if form_data[col_name] and len(form_data[col_name]) == 14:
+          _, calc_age = parse_national_id(form_data[col_name])
+          if calc_age:
+            st.session_state["p_العمر الحالى"] = calc_age
+      elif col_name == "العمر الحالى":
+        form_data[col_name] = st.text_input(
+            f"{col_name} [محسوب تلقائياً من الرقم القومي]",
+            key=f"p_{col_name}",
+        )
+      elif col_name == "التاريخ الزيارة":
+        form_data[col_name] = st.text_input(
+            f"{col_name} [تاريخ اليوم التلقائي]", key=f"p_{col_name}"
         )
       else:
-        if col_name == "الرقم القومى":
-          form_data[col_name] = st.text_input(
-              col_name, max_chars=14, key=f"p_{col_name}"
-          )
-          if form_data[col_name] and len(form_data[col_name]) == 14:
-            _, calc_age = parse_national_id(form_data[col_name])
-            if calc_age:
-              st.session_state["p_العمر الحالى"] = calc_age
-        elif col_name == "العمر الحالى":
-          form_data[col_name] = st.text_input(
-              f"{col_name} [محسوب تلقائياً من الرقم القومي]",
-              key=f"p_{col_name}",
-          )
-        elif col_name == "التاريخ الزيارة":
-          form_data[col_name] = st.text_input(
-              f"{col_name} [تاريخ اليوم التلقائي]", key=f"p_{col_name}"
-          )
-        else:
-          form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+        form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
 
     if col_name == "ملاحظات/ توصيات":
       is_in_auto_range = False
@@ -753,7 +757,13 @@ elif menu == "سجل الأطفال":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    if col_name in DROPDOWN_OPTIONS:
+    # الحقول من "مكان المتابعة (وحدة)" وحتى "مصدر الاحالة(نصيحة)" أصبحت Checkboxes تظهر "نعم" أو ""
+    if col_name in YES_NO_CHECKBOX_FIELDS:
+      current_val = st.session_state.get(f"c_{col_name}", "") == "نعم"
+      checked = st.checkbox(col_name, value=current_val, key=f"c_chk_{col_name}")
+      st.session_state[f"c_{col_name}"] = "نعم" if checked else ""
+
+    elif col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
 
       if col_name == "موعد الزيارة":
@@ -810,10 +820,18 @@ elif menu == "سجل الأطفال":
       ):
         st.session_state[f"c_{col_name}"] = "لا يوجد"
 
+      st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"c_{col_name}", options[0])
-      idx = options.index(current_val) if current_val in options else 0
-
-      st.selectbox(col_name, options, index=idx, key=f"c_{col_name}")
+      chosen_choice = st.radio(
+          f"اختر {col_name}",
+          options,
+          index=(
+              options.index(current_val) if current_val in options else 0
+          ),
+          key=f"c_radio_{col_name}",
+          horizontal=True,
+      )
+      st.session_state[f"c_{col_name}"] = chosen_choice
 
     else:
       if col_name == "تاريخ ميلاد الام":
@@ -913,7 +931,7 @@ elif menu == "سجل الأطفال":
     for col in CHILD_COLUMNS:
       if col not in new_child_df.columns:
         new_child_df[col] = ""
-    new_child_df = new_child_df[CHILD_COLUMNS]
+    new_child_df = new_child_df[CHILD_CHILD_COLUMNS if 'CHILD_CHILD_COLUMNS' in globals() else CHILD_COLUMNS]
 
     if "سجل المشورة للاطفال" in all_dfs:
       all_dfs["سجل المشورة للاطفال"] = pd.concat(
