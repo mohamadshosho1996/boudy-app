@@ -527,8 +527,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تحديث شيت الحوامل والداشبورد لعرض مؤشرات الحوامل المطلوبة بدقة مع"
-      " التحكم في خيارات (لا يوجد)."
+      "تم تحديث النظام لضمان عدم تسجيل أي سبب لدخول الحضانة تلقائياً عندما يتم"
+      " اختيار (لم يتم) في حقل دخول الحضانة."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -548,7 +548,6 @@ elif menu == "سجل الحوامل":
     if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
       continue
 
-    # حقل نوع الولادة بـ 3 خيارات Checkbox متجاورة (طبيعى - قيصرى - لا يوجد)
     if col_name == "نوع الولادة":
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"p_{col_name}", "")
@@ -832,6 +831,13 @@ elif menu == "سجل الأطفال":
           pass
         st.session_state[f"c_{col_name}"] = auto_visit_choice
 
+      # إذا كان الحقل هو "سبب دخول الحضانة" وتم اختيار "لم يتم" في "دخول الحضانة"، فلا يتم عرضه أو يتم جعله فارغاً تلقائياً
+      if col_name == "سبب دخول الحضانة":
+        current_nursery_status = st.session_state.get("c_دخول الحضانة", "لم يتم")
+        if current_nursery_status == "لم يتم":
+          st.session_state[f"c_{col_name}"] = ""
+          continue  # تخطي عرض حقل السبب طالما الحضانة "لم يتم"
+
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"c_{col_name}", options[0])
       chosen_choice = st.radio(
@@ -1013,7 +1019,11 @@ elif menu == "سجل الأطفال":
       elif col == "اسم المستخدم":
         final_child_data[col] = st.session_state.name
       else:
-        final_child_data[col] = st.session_state.get(f"c_{col}", "")
+        # التأكد نهائياً من تفريغ حقل سبب دخول الحضانة إذا كان دخول الحضانة "لم يتم"
+        if col == "سبب دخول الحضانة" and st.session_state.get("c_دخول الحضانة", "لم يتم") == "لم يتم":
+          final_child_data[col] = ""
+        else:
+          final_child_data[col] = st.session_state.get(f"c_{col}", "")
 
     new_child_df = pd.DataFrame([final_child_data], dtype=str)
     excel = pd.ExcelFile(EXCEL_FILE)
@@ -1111,7 +1121,6 @@ elif menu == "استعراض البيانات والداشبورد":
 
     st.markdown("---")
 
-    # جدول مؤشرات شيت الحوامل بناءً على طلبك
     if sheet_to_show == "المشورة الاسرية للحامل":
       st.markdown("### 🤰 جدول مؤشرات الحوامل المطلوبة")
 
@@ -1129,22 +1138,16 @@ elif menu == "استعراض البيانات والداشبورد":
           )
         return 0
 
-      # عدد حالات المتابعة الدورية للحمل (حيث تساوي "تم")
       periodic_followup_count = count_match_val(
           filtered_df, "المتابعة الدورية للحمل", "تم"
       )
-
-      # عدد الولادة الطبيعية
       natural_birth_count = count_match_val(
           filtered_df, "نوع الولادة", "طبيعى"
       )
-
-      # عدد الولادة القيصرية
       cesarean_birth_count = count_match_val(
           filtered_df, "نوع الولادة", "قيصرى"
       )
 
-      # إجمالي عدد حالات وسيلة تنظيم الأسرة المستخدمة سابقاً (تتضمن القيم المسجلة ما عدا الفارغة)
       fam_plan_prev_count = 0
       if (
           "وسيلة تنظيم الأسرة المستخدمة سابقا" in filtered_df.columns
