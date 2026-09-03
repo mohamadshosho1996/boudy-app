@@ -320,7 +320,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة لمنع فقدان البيانات.")
+    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة لمنع فقدان البيانات وتم تحديث قوائم الاختيار لتظهر كأزرار تفعيل (Checkboxes).")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -354,9 +354,20 @@ elif menu == "سجل الحوامل":
             st.markdown(f"**{col_name}**")
             options = DROPDOWN_OPTIONS[col_name]
             current_val = st.session_state.get(f"p_{col_name}", options[0])
-            chosen_choice = st.selectbox(f"اختر {col_name}", options, index=(options.index(current_val) if current_val in options else 0), key=unique_key)
-            form_data[col_name] = chosen_choice
-            st.session_state[f"p_{col_name}"] = chosen_choice
+            
+            # عرض الخيارات كـ Checkboxes بدلاً من Selectbox
+            cols_checkboxes = st.columns(min(len(options), 4))
+            selected_value = current_val
+            
+            for idx, opt in enumerate(options):
+                col_target = cols_checkboxes[idx % len(cols_checkboxes)]
+                with col_target:
+                    is_checked = st.checkbox(opt, value=(current_val == opt), key=f"{unique_key}_chk_{idx}")
+                    if is_checked:
+                        selected_value = opt
+            
+            form_data[col_name] = selected_value
+            st.session_state[f"p_{col_name}"] = selected_value
         else:
             if col_name == "الرقم القومى":
                 raw_val = st.text_input(col_name, key=unique_key)
@@ -451,8 +462,19 @@ elif menu == "سجل الأطفال":
             
             st.markdown(f"**{col_name}**")
             current_val = st.session_state.get(f"c_{col_name}", options[0])
-            chosen_choice = st.selectbox(f"اختر {col_name}", options, index=(options.index(current_val) if current_val in options else 0), key=unique_key)
-            st.session_state[f"c_{col_name}"] = chosen_choice
+            
+            # عرض خيارات القوائم المنسدلة في صورة Checkboxes
+            cols_checkboxes = st.columns(min(len(options), 4))
+            selected_value = current_val
+            
+            for idx, opt in enumerate(options):
+                col_target = cols_checkboxes[idx % len(cols_checkboxes)]
+                with col_target:
+                    is_checked = st.checkbox(opt, value=(current_val == opt), key=f"{unique_key}_chk_{idx}")
+                    if is_checked:
+                        selected_value = opt
+            
+            st.session_state[f"c_{col_name}"] = selected_value
         else:
             if col_name in ["الرقم القومى للام", "الرقم القومى للاب"]:
                 st.session_state[f"c_{col_name}"] = clean_digits(st.text_input(col_name, key=unique_key), 14)
