@@ -255,33 +255,6 @@ def parse_national_id(nat_id):
             return "", ""
     return "", ""
 
-def calculate_child_age_months(birth_date_val):
-    if not birth_date_val:
-        return ""
-    try:
-        if isinstance(birth_date_val, str):
-            b_date = datetime.datetime.strptime(birth_date_val, "%Y-%m-%d").date()
-        else:
-            b_date = birth_date_val
-        today = datetime.date.today()
-        diff_months = (today.year - b_date.year) * 12 + (today.month - b_date.month)
-        if today.day < b_date.day:
-            diff_months -= 1
-        return str(max(0, diff_months))
-    except Exception:
-        return ""
-
-def calculate_head_circumference(weight_val, length_val):
-    try:
-        w = float(weight_val)
-        l = float(length_val)
-        if w > 0 and l > 0:
-            head_circ = (l * 0.25) + (w * 1.5) + 10.0
-            return f"{round(head_circ, 1)}"
-    except ValueError:
-        pass
-    return ""
-
 def get_existing_data(nat_id, table_name, id_column):
     clean_id = clean_digits(nat_id, 14)
     df = load_from_db(table_name)
@@ -347,7 +320,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة مع التحديث الفوري للرقم القومي وتاريخ الميلاد.")
+    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة لمنع فقدان البيانات وتم تحديث حقل تاريخ ميلاد الأم ليتملئ أوتوماتيكياً من الرقم القومي.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -357,15 +330,6 @@ elif menu == "سجل الحوامل":
     for col in PREGNANT_COLUMNS:
         if f"p_{col}" not in st.session_state:
             st.session_state[f"p_{col}"] = today_str if col == "التاريخ الزيارة" else ""
-
-    def update_pregnant_nat_id():
-        val = st.session_state.get("p_nat_id_input", "")
-        cleaned = clean_digits(val, 14)
-        st.session_state["p_الرقم القومى"] = cleaned
-        if len(cleaned) == 14:
-            _, calc_age = parse_national_id(cleaned)
-            if calc_age:
-                st.session_state["p_العمر الحالى"] = calc_age
 
     form_data = {}
     for i, col_name in enumerate(PREGNANT_COLUMNS):
@@ -405,13 +369,12 @@ elif menu == "سجل الحوامل":
             st.session_state[f"p_{col_name}"] = selected_value
         else:
             if col_name == "الرقم القومى":
-                current_nat = st.session_state.get("p_الرقم القومى", "")
-                st.text_input(col_name, value=current_nat, key="p_nat_id_input", on_change=update_pregnant_nat_id)
-                form_data[col_name] = st.session_state.get("p_الرقم القومى", "")
-            elif col_name == "العمر الحالى":
-                current_val = st.session_state.get(f"p_{col_name}", "")
-                form_data[col_name] = st.text_input(col_name, value=current_val, key=unique_key)
-                st.session_state[f"p_{col_name}"] = form_data[col_name]
+                raw_val = st.text_input(col_name, key=unique_key)
+                cleaned_val = clean_digits(raw_val, 14)
+                form_data[col_name] = cleaned_val
+                if len(cleaned_val) == 14:
+                    _, calc_age = parse_national_id(cleaned_val)
+                    if calc_age: st.session_state["p_العمر الحالى"] = calc_age
             elif col_name == "رقم الموبايل":
                 form_data[col_name] = clean_digits(st.text_input(col_name, key=unique_key), 11)
             else:
@@ -445,27 +408,22 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             st.session_state[f"c_{col}"] = today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
 
-    # دالة التحديث الفوري لتاريخ ميلاد الأم عند كتابة الرقم القومي
-    def update_mom_nat_id():
-        val = st.session_state.get("c_nat_id_mom_input", "")
-        cleaned = clean_digits(val, 14)
-        st.session_state["c_الرقم القومى للام"] = cleaned
-        if len(cleaned) == 14:
-            b_date_mom, _ = parse_national_id(cleaned)
-            if b_date_mom:
-                st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
-
-    current_mom_id = st.session_state.get("c_الرقم القومى للام", "")
-    st.text_input("الرقم القومى للام (14 رقما لتوليد تاريخ الميلاد تلقائيا)", value=current_mom_id, key="c_nat_id_mom_input", on_change=update_mom_nat_id)
+    # حقل إدخال الرقم القومي للأم مع التحديث الفوري لتاريخ الميلاد
+    raw_nat_id_mom = st.text_input("الرقم القومى للام", key="c_الرقم القومى للام_input")
+    nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
     
-    nat_id_mom_input = st.session_state.get("c_الرقم القومى للام", "")
+    if nat_id_mom_input:
+        st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
+        b_date_mom, _ = parse_national_id(nat_id_mom_input)
+        if b_date_mom:
+            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
     if len(nat_id_mom_input) == 14 and st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
         found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
         if not found_data:
             found_data = get_existing_data(nat_id_mom_input, "pregnant_records", "الرقم القومى")
         for c_name in CHILD_COLUMNS:
-            if c_name not in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+            if c_name not in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام", "تاريخ ميلاد الام"]:
                 val = found_data.get(c_name, "")
                 if val: st.session_state[f"c_{c_name}"] = str(val)
         st.rerun()
@@ -476,35 +434,14 @@ elif menu == "سجل الأطفال":
         
         unique_key = f"c_input_field_{i}_{col_name}"
         
+        # حقل تاريخ ميلاد الأم يتم تعبئته أوتوماتيكياً وعرضه للمستخدم
         if col_name == "تاريخ ميلاد الام":
-            default_mom_bday = st.session_state.get(f"c_{col_name}", "")
-            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=default_mom_bday, key=unique_key)
+            auto_mom_bdate = st.session_state.get("c_تاريخ ميلاد الام", "")
+            st.text_input(col_name, value=auto_mom_bdate, key=unique_key, disabled=True)
+            st.session_state[f"c_{col_name}"] = auto_mom_bdate
+            continue
 
-        elif col_name == "تاريخ الميلاد للطفل":
-            chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
-            date_str = str(chosen_date)
-            st.session_state[f"c_{col_name}"] = date_str
-            calc_months = calculate_child_age_months(chosen_date)
-            st.session_state["c_العمر الحالى للطفل (شهور)"] = calc_months
-
-        elif col_name == "العمر الحالى للطفل (شهور)":
-            current_months_val = st.session_state.get("c_العمر الحالى للطفل (شهور)", "")
-            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=current_months_val, key=unique_key)
-
-        elif col_name in ["وزن الطفل عند الولادة", "طول الطفل عند الولادة"]:
-            val = st.text_input(col_name, key=unique_key)
-            st.session_state[f"c_{col_name}"] = val
-            w_val = st.session_state.get("c_وزن الطفل عند الولادة", "")
-            l_val = st.session_state.get("c_طول الطفل عند الولادة", "")
-            calc_hc = calculate_head_circumference(w_val, l_val)
-            if calc_hc:
-                st.session_state["c_مقاس راس الطفل عند الولادة"] = calc_hc
-
-        elif col_name == "مقاس راس الطفل عند الولادة":
-            current_hc_val = st.session_state.get("c_مقاس راس الطفل عند الولادة", "")
-            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=current_hc_val, key=unique_key)
-
-        elif col_name == "نوع الولادة":
+        if col_name == "نوع الولادة":
             st.markdown(f"**{col_name}**")
             current_val = st.session_state.get(f"c_{col_name}", "")
             c1, c2, c3 = st.columns(3)
@@ -547,10 +484,13 @@ elif menu == "سجل الأطفال":
             
             st.session_state[f"c_{col_name}"] = selected_value
         else:
-            if col_name in ["الرقم القومى للام", "الرقم القومى للاب"]:
+            if col_name == "الرقم القومى للاب":
                 st.session_state[f"c_{col_name}"] = clean_digits(st.text_input(col_name, key=unique_key), 14)
             elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
                 st.session_state[f"c_{col_name}"] = clean_digits(st.text_input(col_name, key=unique_key), 11)
+            elif col_name == "تاريخ الميلاد للطفل":
+                chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
+                st.session_state[f"c_{col_name}"] = str(chosen_date)
             else:
                 st.text_input(col_name, key=unique_key)
 
