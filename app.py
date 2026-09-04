@@ -276,7 +276,6 @@ def calculate_head_circumference(weight_val, length_val):
         w = float(weight_val)
         l = float(length_val)
         if w > 0 and l > 0:
-            # معادلة تقديرية قياسية لمقاس رأس الطفل عند الولادة بناءً على الطول والوزن
             head_circ = (l * 0.25) + (w * 1.5) + 10.0
             return f"{round(head_circ, 1)}"
     except ValueError:
@@ -348,7 +347,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة لمنع فقدان البيانات وتم تحديث قوائم الاختيار لتظهر كأزرار تفعيل (Checkboxes).")
+    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة وتم تحديث الحسابات التلقائية للرقم القومي.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -397,12 +396,19 @@ elif menu == "سجل الحوامل":
             st.session_state[f"p_{col_name}"] = selected_value
         else:
             if col_name == "الرقم القومى":
-                raw_val = st.text_input(col_name, key=unique_key)
+                current_nat = st.session_state.get(f"p_{col_name}", "")
+                raw_val = st.text_input(col_name, value=current_nat, key=unique_key)
                 cleaned_val = clean_digits(raw_val, 14)
                 form_data[col_name] = cleaned_val
+                st.session_state[f"p_{col_name}"] = cleaned_val
                 if len(cleaned_val) == 14:
                     _, calc_age = parse_national_id(cleaned_val)
-                    if calc_age: st.session_state["p_العمر الحالى"] = calc_age
+                    if calc_age: 
+                        st.session_state["p_العمر الحالى"] = calc_age
+            elif col_name == "العمر الحالى":
+                current_val = st.session_state.get(f"p_{col_name}", "")
+                form_data[col_name] = st.text_input(col_name, value=current_val, key=unique_key)
+                st.session_state[f"p_{col_name}"] = form_data[col_name]
             elif col_name == "رقم الموبايل":
                 form_data[col_name] = clean_digits(st.text_input(col_name, key=unique_key), 11)
             else:
@@ -436,13 +442,15 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             st.session_state[f"c_{col}"] = today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
 
-    raw_nat_id_mom = st.text_input("الرقم القومى للام (اختياري)", key="c_الرقم القومى للام_input")
+    # حقل مستقل للرقم القومي للأمم لضمان التوليد التلقائي الفوري فور الكتابة
+    current_mom_id = st.session_state.get("c_الرقم القومى للام", "")
+    raw_nat_id_mom = st.text_input("الرقم القومى للام (14 رقما لتوليد تاريخ الميلاد تلقائيا)", value=current_mom_id, key="c_الرقم القومى للام_input")
     nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
+    
     if nat_id_mom_input:
         st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
         if b_date_mom: 
-            # جلب وتعبئة تاريخ ميلاد الأم تلقائياً من الرقم القومي
             st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
     if len(nat_id_mom_input) == 14 and st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
@@ -469,7 +477,6 @@ elif menu == "سجل الأطفال":
             chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
             date_str = str(chosen_date)
             st.session_state[f"c_{col_name}"] = date_str
-            # حساب وتحديث العمر الحالي للطفل (بالشهور) تلقائياً
             calc_months = calculate_child_age_months(chosen_date)
             st.session_state["c_العمر الحالى للطفل (شهور)"] = calc_months
 
@@ -480,7 +487,6 @@ elif menu == "سجل الأطفال":
         elif col_name in ["وزن الطفل عند الولادة", "طول الطفل عند الولادة"]:
             val = st.text_input(col_name, key=unique_key)
             st.session_state[f"c_{col_name}"] = val
-            # حساب مقاس رأس الطفل عند الولادة تلقائياً بناءً على الوزن والطول
             w_val = st.session_state.get("c_وزن الطفل عند الولادة", "")
             l_val = st.session_state.get("c_طول الطفل عند الولادة", "")
             calc_hc = calculate_head_circumference(w_val, l_val)
@@ -591,4 +597,3 @@ elif menu == "إدارة المستخدمين" and st.session_state.role == "adm
     st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
     for k, v in DEFAULT_USERS.items():
         st.write(f"- **{v['name']}** | اسم المستخدم: `{k}` | الصلاحية: `{v['role']}`")
-        
