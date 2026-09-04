@@ -255,6 +255,34 @@ def parse_national_id(nat_id):
             return "", ""
     return "", ""
 
+def calculate_child_age_months(birth_date_val):
+    if not birth_date_val:
+        return ""
+    try:
+        if isinstance(birth_date_val, str):
+            b_date = datetime.datetime.strptime(birth_date_val, "%Y-%m-%d").date()
+        else:
+            b_date = birth_date_val
+        today = datetime.date.today()
+        diff_months = (today.year - b_date.year) * 12 + (today.month - b_date.month)
+        if today.day < b_date.day:
+            diff_months -= 1
+        return str(max(0, diff_months))
+    except Exception:
+        return ""
+
+def calculate_head_circumference(weight_val, length_val):
+    try:
+        w = float(weight_val)
+        l = float(length_val)
+        if w > 0 and l > 0:
+            # معادلة تقديرية قياسية لمقاس رأس الطفل عند الولادة (بناءً على الطول والوزن)
+            head_circ = (l * 0.25) + (w * 1.5) + 10.0
+            return f"{round(head_circ, 1)}"
+    except ValueError:
+        pass
+    return ""
+
 def get_existing_data(nat_id, table_name, id_column):
     clean_id = clean_digits(nat_id, 14)
     df = load_from_db(table_name)
@@ -355,7 +383,6 @@ elif menu == "سجل الحوامل":
             options = DROPDOWN_OPTIONS[col_name]
             current_val = st.session_state.get(f"p_{col_name}", options[0])
             
-            # عرض الخيارات كـ Checkboxes بدلاً من Selectbox
             cols_checkboxes = st.columns(min(len(options), 4))
             selected_value = current_val
             
@@ -414,7 +441,8 @@ elif menu == "سجل الأطفال":
     if nat_id_mom_input:
         st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
-        if b_date_mom: st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+        if b_date_mom: 
+            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
     if len(nat_id_mom_input) == 14 and st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
         found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
@@ -432,7 +460,37 @@ elif menu == "سجل الأطفال":
         
         unique_key = f"c_input_field_{i}_{col_name}"
         
-        if col_name == "نوع الولادة":
+        if col_name == "تاريخ ميلاد الام":
+            default_mom_bday = st.session_state.get(f"c_{col_name}", "")
+            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=default_mom_bday, key=unique_key)
+
+        elif col_name == "تاريخ الميلاد للطفل":
+            chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
+            date_str = str(chosen_date)
+            st.session_state[f"c_{col_name}"] = date_str
+            # حساب العمر الحالي للطفل بالشهور تلقائياً
+            calc_months = calculate_child_age_months(chosen_date)
+            st.session_state["c_العمر الحالى للطفل (شهور)"] = calc_months
+
+        elif col_name == "العمر الحالى للطفل (شهور)":
+            current_months_val = st.session_state.get("c_العمر الحالى للطفل (شهور)", "")
+            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=current_months_val, key=unique_key)
+
+        elif col_name in ["وزن الطفل عند الولادة", "طول الطفل عند الولادة"]:
+            val = st.text_input(col_name, key=unique_key)
+            st.session_state[f"c_{col_name}"] = val
+            # تحديث حساب مقاس رأس الطفل تلقائياً عند إدخال الوزن والطول
+            w_val = st.session_state.get("c_وزن الطفل عند الولادة", "")
+            l_val = st.session_state.get("c_طول الطفل عند الولادة", "")
+            calc_hc = calculate_head_circumference(w_val, l_val)
+            if calc_hc:
+                st.session_state["c_مقاس راس الطفل عند الولادة"] = calc_hc
+
+        elif col_name == "مقاس راس الطفل عند الولادة":
+            current_hc_val = st.session_state.get("c_مقاس راس الطفل عند الولادة", "")
+            st.session_state[f"c_{col_name}"] = st.text_input(col_name, value=current_hc_val, key=unique_key)
+
+        elif col_name == "نوع الولادة":
             st.markdown(f"**{col_name}**")
             current_val = st.session_state.get(f"c_{col_name}", "")
             c1, c2, c3 = st.columns(3)
@@ -463,7 +521,6 @@ elif menu == "سجل الأطفال":
             st.markdown(f"**{col_name}**")
             current_val = st.session_state.get(f"c_{col_name}", options[0])
             
-            # عرض خيارات القوائم المنسدلة في صورة Checkboxes
             cols_checkboxes = st.columns(min(len(options), 4))
             selected_value = current_val
             
@@ -480,9 +537,6 @@ elif menu == "سجل الأطفال":
                 st.session_state[f"c_{col_name}"] = clean_digits(st.text_input(col_name, key=unique_key), 14)
             elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
                 st.session_state[f"c_{col_name}"] = clean_digits(st.text_input(col_name, key=unique_key), 11)
-            elif col_name == "تاريخ الميلاد للطفل":
-                chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
-                st.session_state[f"c_{col_name}"] = str(chosen_date)
             else:
                 st.text_input(col_name, key=unique_key)
 
