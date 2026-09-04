@@ -347,7 +347,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة وتم تحديث الحسابات التلقائية للرقم القومي.")
+    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة مع التحديث الفوري للرقم القومي وتاريخ الميلاد.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -357,6 +357,15 @@ elif menu == "سجل الحوامل":
     for col in PREGNANT_COLUMNS:
         if f"p_{col}" not in st.session_state:
             st.session_state[f"p_{col}"] = today_str if col == "التاريخ الزيارة" else ""
+
+    def update_pregnant_nat_id():
+        val = st.session_state.get("p_nat_id_input", "")
+        cleaned = clean_digits(val, 14)
+        st.session_state["p_الرقم القومى"] = cleaned
+        if len(cleaned) == 14:
+            _, calc_age = parse_national_id(cleaned)
+            if calc_age:
+                st.session_state["p_العمر الحالى"] = calc_age
 
     form_data = {}
     for i, col_name in enumerate(PREGNANT_COLUMNS):
@@ -396,15 +405,9 @@ elif menu == "سجل الحوامل":
             st.session_state[f"p_{col_name}"] = selected_value
         else:
             if col_name == "الرقم القومى":
-                current_nat = st.session_state.get(f"p_{col_name}", "")
-                raw_val = st.text_input(col_name, value=current_nat, key=unique_key)
-                cleaned_val = clean_digits(raw_val, 14)
-                form_data[col_name] = cleaned_val
-                st.session_state[f"p_{col_name}"] = cleaned_val
-                if len(cleaned_val) == 14:
-                    _, calc_age = parse_national_id(cleaned_val)
-                    if calc_age: 
-                        st.session_state["p_العمر الحالى"] = calc_age
+                current_nat = st.session_state.get("p_الرقم القومى", "")
+                st.text_input(col_name, value=current_nat, key="p_nat_id_input", on_change=update_pregnant_nat_id)
+                form_data[col_name] = st.session_state.get("p_الرقم القومى", "")
             elif col_name == "العمر الحالى":
                 current_val = st.session_state.get(f"p_{col_name}", "")
                 form_data[col_name] = st.text_input(col_name, value=current_val, key=unique_key)
@@ -442,16 +445,20 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             st.session_state[f"c_{col}"] = today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
 
-    # حقل مستقل للرقم القومي للأمم لضمان التوليد التلقائي الفوري فور الكتابة
+    # دالة التحديث الفوري لتاريخ ميلاد الأم عند كتابة الرقم القومي
+    def update_mom_nat_id():
+        val = st.session_state.get("c_nat_id_mom_input", "")
+        cleaned = clean_digits(val, 14)
+        st.session_state["c_الرقم القومى للام"] = cleaned
+        if len(cleaned) == 14:
+            b_date_mom, _ = parse_national_id(cleaned)
+            if b_date_mom:
+                st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+
     current_mom_id = st.session_state.get("c_الرقم القومى للام", "")
-    raw_nat_id_mom = st.text_input("الرقم القومى للام (14 رقما لتوليد تاريخ الميلاد تلقائيا)", value=current_mom_id, key="c_الرقم القومى للام_input")
-    nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
+    st.text_input("الرقم القومى للام (14 رقما لتوليد تاريخ الميلاد تلقائيا)", value=current_mom_id, key="c_nat_id_mom_input", on_change=update_mom_nat_id)
     
-    if nat_id_mom_input:
-        st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
-        b_date_mom, _ = parse_national_id(nat_id_mom_input)
-        if b_date_mom: 
-            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+    nat_id_mom_input = st.session_state.get("c_الرقم القومى للام", "")
 
     if len(nat_id_mom_input) == 14 and st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
         found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
