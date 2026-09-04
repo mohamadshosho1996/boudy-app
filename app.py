@@ -276,7 +276,7 @@ def calculate_head_circumference(weight_val, length_val):
         w = float(weight_val)
         l = float(length_val)
         if w > 0 and l > 0:
-            # معادلة تقديرية قياسية لمقاس رأس الطفل عند الولادة (بناءً على الطول والوزن)
+            # معادلة تقديرية قياسية لمقاس رأس الطفل عند الولادة بناءً على الطول والوزن
             head_circ = (l * 0.25) + (w * 1.5) + 10.0
             return f"{round(head_circ, 1)}"
     except ValueError:
@@ -442,6 +442,7 @@ elif menu == "سجل الأطفال":
         st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
         b_date_mom, _ = parse_national_id(nat_id_mom_input)
         if b_date_mom: 
+            # جلب وتعبئة تاريخ ميلاد الأم تلقائياً من الرقم القومي
             st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
     if len(nat_id_mom_input) == 14 and st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
@@ -468,7 +469,7 @@ elif menu == "سجل الأطفال":
             chosen_date = st.date_input(col_name, value=datetime.date.today(), key=unique_key)
             date_str = str(chosen_date)
             st.session_state[f"c_{col_name}"] = date_str
-            # حساب العمر الحالي للطفل بالشهور تلقائياً
+            # حساب وتحديث العمر الحالي للطفل (بالشهور) تلقائياً
             calc_months = calculate_child_age_months(chosen_date)
             st.session_state["c_العمر الحالى للطفل (شهور)"] = calc_months
 
@@ -479,7 +480,7 @@ elif menu == "سجل الأطفال":
         elif col_name in ["وزن الطفل عند الولادة", "طول الطفل عند الولادة"]:
             val = st.text_input(col_name, key=unique_key)
             st.session_state[f"c_{col_name}"] = val
-            # تحديث حساب مقاس رأس الطفل تلقائياً عند إدخال الوزن والطول
+            # حساب مقاس رأس الطفل عند الولادة تلقائياً بناءً على الوزن والطول
             w_val = st.session_state.get("c_وزن الطفل عند الولادة", "")
             l_val = st.session_state.get("c_طول الطفل عند الولادة", "")
             calc_hc = calculate_head_circumference(w_val, l_val)
@@ -590,3 +591,4 @@ elif menu == "إدارة المستخدمين" and st.session_state.role == "adm
     st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
     for k, v in DEFAULT_USERS.items():
         st.write(f"- **{v['name']}** | اسم المستخدم: `{k}` | الصلاحية: `{v['role']}`")
+        
