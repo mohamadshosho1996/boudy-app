@@ -12,7 +12,7 @@ SCOPE = [
 ]
 
 def get_gspread_client():
-    # قراءة بيانات الاعتماد من Streamlit Secrets
+    # قراءة بيانات الاعتماد مباشرة وبشكل آمن من هيكل st.secrets المتداخل
     if "gcp_service_account" in st.secrets:
         creds_dict = dict(st.secrets["gcp_service_account"])
         creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
@@ -31,16 +31,13 @@ def get_worksheet(worksheet_name):
 
 def save_to_cloud(worksheet_name, data_dict):
     worksheet = get_worksheet(worksheet_name)
-    # جلب أسماء الأعمدة من الصف الأول في الشيت لترتيب القيم بنفس الترتيب تماماً
     headers = worksheet.row_values(1)
     
-    # تجهيز الصف بالترتيب الصحيح للأعمدة
     row_values = []
     for header in headers:
         val = data_dict.get(header, "")
         row_values.append(str(val) if val is not None else "")
     
-    # إضافة الصف الجديد إلى غوغل شيت
     worksheet.append_row(row_values)
 
 def load_from_cloud(worksheet_name):
@@ -54,9 +51,8 @@ def delete_from_cloud_by_nat_id(worksheet_name, nat_id_col, clean_id):
     records = worksheet.get_all_records()
     deleted_count = 0
     
-    # البحث من الأسفل للأعلى أو الحذف العكسي لتفادي اختلاف المؤشرات عند الحذف
     for idx, row in enumerate(reversed(records), start=1):
-        actual_row_idx = len(records) - idx + 2 # +2 بسبب عنوان الصف الأول في الشيت
+        actual_row_idx = len(records) - idx + 2 
         row_val = str(row.get(nat_id_col, "")).strip()
         if row_val == str(clean_id):
             worksheet.delete_rows(actual_row_idx)
@@ -68,7 +64,7 @@ def delete_from_cloud_by_index(worksheet_name, row_idx):
     worksheet = get_worksheet(worksheet_name)
     records = worksheet.get_all_records()
     if 0 <= row_idx < len(records):
-        target_row_num = row_idx + 2 # الصف الأول عناوين، لذا نبدأ من الصف الثاني (2)
+        target_row_num = row_idx + 2 
         worksheet.delete_rows(target_row_num)
         return True
     return False
