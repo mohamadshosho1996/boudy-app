@@ -12,9 +12,12 @@ SCOPE = [
 ]
 
 def get_gspread_client():
-    # قراءة بيانات الاعتماد مباشرة وبشكل آمن من هيكل st.secrets المتداخل
     if "gcp_service_account" in st.secrets:
+        # تحويل بيانات الاعتماد إلى قاموس مع تصحيح صيغة المفتاح الخاص والأسطر الجديدة
         creds_dict = dict(st.secrets["gcp_service_account"])
+        if "private_key" in creds_dict:
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            
         creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
         client = gspread.authorize(creds)
         return client
@@ -24,7 +27,6 @@ def get_gspread_client():
 
 def get_worksheet(worksheet_name):
     client = get_gspread_client()
-    # فتح ملف الـ Google Sheet الرئيسي باسم FamilyCareDB
     spreadsheet = client.open("FamilyCareDB")
     worksheet = spreadsheet.worksheet(worksheet_name)
     return worksheet
