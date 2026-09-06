@@ -5,7 +5,7 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
-# ==================== إعدادات الاتصال بـ Google Sheets السحابي ====================
+# ==================== إعدادات الاتصال السحابي الآمن ====================
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
@@ -13,11 +13,9 @@ SCOPE = [
 
 def get_gspread_client():
     if "gcp_service_account" in st.secrets:
-        # تحويل بيانات الـ secrets إلى قاموس عادي وتنظيف المفتاح الخاص بشكل سليم جذرياً
         sec = dict(st.secrets["gcp_service_account"])
         private_key = sec.get("private_key", "")
         if private_key:
-            # استبدال الرموز النصية للـ newline الحقيقية إذا لزم الأمر وتنظيف المسافات
             private_key = private_key.replace("\\n", "\n").strip().strip('"').strip("'")
             sec["private_key"] = private_key
             
@@ -30,12 +28,10 @@ def get_gspread_client():
 
 def get_worksheet(worksheet_name):
     client = get_gspread_client()
-    # تأكد من أن اسم ملف الجداول في غوغل هو FamilyCareDB
     spreadsheet = client.open("FamilyCareDB")
     try:
         worksheet = spreadsheet.worksheet(worksheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        # إنشاء الورقة تلقائياً إذا لم تكن موجودة لتجنب أي خطأ
         worksheet = spreadsheet.add_worksheet(title=worksheet_name, rows=1000, cols=50)
     return worksheet
 
@@ -43,7 +39,6 @@ def save_to_cloud(worksheet_name, data_dict):
     worksheet = get_worksheet(worksheet_name)
     headers = worksheet.row_values(1)
     
-    # إذا كانت الورقة فارغة، أضف العناوين تلقائياً
     if not headers:
         headers = list(data_dict.keys())
         worksheet.append_row(headers)
@@ -328,8 +323,13 @@ with col_mobile_logout:
 menu = main_screen_menu
 st.markdown("---")
 
+# ==================== 1. الصفحة الرئيسية ====================
+if menu == "الصفحة الرئيسية":
+    st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
+    st.write("تم ربط النظام بقاعدة بيانات سحابية دائمية (Google Sheets) لحفظ كافة السجلات والبيانات بصورة آمنة ومستمرة لا تختفي أبداً.")
+
 # ==================== 2. سجل الحوامل ====================
-if menu == "سجل الحوامل":
+elif menu == "سجل الحوامل":
     st.markdown("<h2>🤰 سجل المشورة الأسرية للحوامل</h2>", unsafe_allow_html=True)
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     
@@ -409,7 +409,14 @@ if menu == "سجل الحوامل":
         save_to_cloud("pregnant_records", final_form_data)
         st.success("تم حفظ بيانات الحامل بنجاح في Google Sheets السحابي! ✨")
 
-# (باقي الأقسام: الصفحة الرئيسية، سجل الأطفال، استعراض البيانات، وإدارة المستخدمين تعمل بنفس التنسيق تماماً...)
-elif menu == "الصفحة الرئيسية":
-    st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("تم ربط النظام بقاعدة بيانات سحابية دائمية (Google Sheets) لحفظ كافة السجلات والبيانات بصورة آمنة ومستمرة.")
+# ==================== 3. سجل الأطفال ====================
+elif menu == "سجل الأطفال":
+    st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
+
+# ==================== 4. استعراض البيانات والداشبورد ====================
+elif menu == "استعراض البيانات والداشبورد":
+    st.markdown("<h2>📊 لوحة المؤشرات واستعراض البيانات المبسطة</h2>", unsafe_allow_html=True)
+
+# ==================== 5. إدارة المستخدمين ====================
+elif menu == "إدارة المستخدمين" and st.session_state.role == "admin":
+    st.markdown("<h2>⚙️ إدارة المستخدمين والصلاحيات</h2>", unsafe_allow_html=True)
