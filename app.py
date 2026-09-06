@@ -1,6 +1,6 @@
 import datetime
-import os
 import pandas as pd
+import sqlite3
 import streamlit as st
 
 # ==================== إعدادات الصفحة والتصميم ====================
@@ -42,8 +42,56 @@ footer {visibility: hidden;}
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# ==================== الثوابت وإعدادات البيانات ====================
-EXCEL_FILE = "template.xlsx"
+# ==================== إعداد قاعدة البيانات SQLite الثابتة ====================
+DB_FILE = "family_counseling.db"
+
+
+def init_db():
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pregnant_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            "تاريخ التسجيل" TEXT,
+            "اسم المستخدم" TEXT,
+            "الرقم القومى" TEXT,
+            data_json TEXT
+        )
+    """)
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS child_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            "تاريخ التسجيل" TEXT,
+            "اسم المستخدم" TEXT,
+            "الرقم القومى للام" TEXT,
+            data_json TEXT
+        )
+    """)
+  conn.commit()
+  conn.close()
+
+
+init_db()
+
+
+def save_to_db(table_name, df):
+  conn = sqlite3.connect(DB_FILE)
+  df.to_sql(table_name, conn, if_exists="replace", index=False)
+  conn.close()
+
+
+def load_from_db(table_name):
+  conn = sqlite3.connect(DB_FILE)
+  try:
+    df = pd.read_sql(f"SELECT * FROM {table_name}", conn, dtype=str)
+    if "index" in df.columns:
+      df = df.drop(columns=["index"])
+    conn.close()
+    return df
+  except Exception:
+    conn.close()
+    return pd.DataFrame()
+
 
 DEFAULT_USERS = {
     "admin": {"pass": "admin123", "role": "admin", "name": "د. شيماء 🌸"},
@@ -72,20 +120,10 @@ VISIT_SCHEDULE_OPTIONS = [
 ]
 
 DROPDOWN_OPTIONS = {
-    "مستوى التعليم": [
-        "امى",
-        "يجيد القراءة",
-        "مؤهل متوسط",
-        "فوق متوسط",
-        "مؤهل عالى",
-    ],
+    "مستوى التعليم": ["امى", "يجيد القراءة", "مؤهل متوسط", "فوق متوسط", "مؤهل عالى"],
     "الوظيفة": ["يعمل", "لا تعمل"],
     "قرابة بين الزوجين": ["نعم", "لا"],
-    "وسيلة تنظيم الأسرة المستخدمة سابقا": [
-        "توجد",
-        "مرغوب",
-        "غير مرغوب",
-    ],
+    "وسيلة تنظيم الأسرة المستخدمة سابقا": ["توجد", "مرغوب", "غير مرغوب"],
     "شهر الحمل": [
         "الشهر الاول",
         "الشهر الثانى",
@@ -360,9 +398,7 @@ def clean_digits(val, max_len=None):
   if not val:
     return ""
   digits = "".join(filter(str.isdigit, str(val)))
-  if max_len:
-    return digits[:max_len]
-  return digits
+  return digits[:max_len] if max_len else digits
 
 
 def parse_national_id(nat_id):
@@ -373,9 +409,8 @@ def parse_national_id(nat_id):
     month = int(clean_id[3:5])
     day = int(clean_id[5:7])
     century = 2000 if century_code == 3 else 1900
-    birth_year = century + year_digits
     try:
-      birth_date = datetime.date(birth_year, month, day)
+      birth_date = datetime.date(century + year_digits, month, day)
       today = datetime.date.today()
       age = (
           today.year
@@ -402,7 +437,6 @@ def calculate_motor_development(
       )
 
     w_curr = float(weight_current) if weight_current else 3.5
-
     if age_months <= 1:
       expected_weight = 3.3 + (age_months * 0.8)
     elif age_months <= 12:
@@ -411,7 +445,6 @@ def calculate_motor_development(
       expected_weight = 10.0 + ((age_months - 12) * 0.2)
 
     diff_ratio = w_curr / expected_weight
-
     if diff_ratio < 0.82:
       return "متاخر"
     elif diff_ratio > 1.25:
@@ -422,30 +455,15 @@ def calculate_motor_development(
     return "طبيعى"
 
 
-def get_existing_data(nat_id, sheet_name, id_column):
+def get_existing_data(nat_id, table_name, id_column):
   clean_id = clean_digits(nat_id, 14)
-  if os.path.exists(EXCEL_FILE) and len(clean_id) == 14:
-    try:
-      excel = pd.ExcelFile(EXCEL_FILE)
-      for s in excel.sheet_names:
-        df = pd.read_excel(excel, sheet_name=s, dtype=str)
-        if id_column in df.columns:
-          match = df[df[id_column].astype(str).str.strip() == clean_id]
-          if not match.empty:
-            return match.iloc[-1].to_dict()
-    except Exception:
-      pass
+  df = load_from_db(table_name)
+  if not df.empty and id_column in df.columns and len(clean_id) == 14:
+    match = df[df[id_column].astype(str).str.strip() == clean_id]
+    if not match.empty:
+      return match.iloc[-1].to_dict()
   return {}
 
-
-if not os.path.exists(EXCEL_FILE):
-  with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-    pd.DataFrame(columns=PREGNANT_COLUMNS).to_excel(
-        writer, sheet_name="المشورة الاسرية للحامل", index=False
-    )
-    pd.DataFrame(columns=CHILD_COLUMNS).to_excel(
-        writer, sheet_name="سجل المشورة للاطفال", index=False
-    )
 
 # ==================== تسجيل الدخول والصلاحيات ====================
 if "logged_in" not in st.session_state:
@@ -527,8 +545,8 @@ if menu == "الصفحة الرئيسية":
       unsafe_allow_html=True,
   )
   st.write(
-      "تم تحديث شيت الحوامل والداشبورد لعرض مؤشرات الحوامل المطلوبة بدقة مع"
-      " التحكم في خيارات (لا يوجد)."
+      "الرجاء اختيار القسم المطلوب من القائمة الجانبية (مثل: سجل الحوامل أو سجل"
+      " الأطفال) للبدء في إدخال البيانات."
   )
 
 # ==================== 2. سجل الحوامل ====================
@@ -538,49 +556,43 @@ elif menu == "سجل الحوامل":
 
   for col in PREGNANT_COLUMNS:
     if f"p_{col}" not in st.session_state:
-      if col == "التاريخ الزيارة":
-        st.session_state[f"p_{col}"] = today_str
-      else:
-        st.session_state[f"p_{col}"] = ""
+      st.session_state[f"p_{col}"] = (
+          today_str if col == "التاريخ الزيارة" else ""
+      )
 
   form_data = {}
-  for col_name in PREGNANT_COLUMNS:
+  for i, col_name in enumerate(PREGNANT_COLUMNS):
     if col_name in ["تاريخ التسجيل", "اسم المستخدم"]:
       continue
 
-    # حقل نوع الولادة بـ 3 خيارات Checkbox متجاورة (طبيعى - قيصرى - لا يوجد)
+    unique_key = f"p_input_field_{i}_{col_name}"
+
     if col_name == "نوع الولادة":
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"p_{col_name}", "")
-
-      c_opt1, c_opt2, c_opt3 = st.columns(3)
-      with c_opt1:
+      c1, c2, c3 = st.columns(3)
+      with c1:
         chk_nat = st.checkbox(
             "طبيعى",
             value=(current_val == "طبيعى"),
-            key="p_birth_nat",
+            key=f"{unique_key}_nat",
         )
-      with c_opt2:
+      with c2:
         chk_ces = st.checkbox(
             "قيصرى",
             value=(current_val == "قيصرى"),
-            key="p_birth_ces",
+            key=f"{unique_key}_ces",
         )
-      with c_opt3:
+      with c3:
         chk_none = st.checkbox(
             "لا يوجد",
-            value=(current_val == "لا يوجد" or current_val == ""),
-            key="p_birth_none",
+            value=(current_val in ["لا يوجد", ""]),
+            key=f"{unique_key}_none",
         )
 
-      selected_birth = ""
-      if chk_nat:
-        selected_birth = "طبيعى"
-      elif chk_ces:
-        selected_birth = "قيصرى"
-      elif chk_none:
-        selected_birth = "لا يوجد"
-
+      selected_birth = (
+          "طبيعى" if chk_nat else ("قيصرى" if chk_ces else "لا يوجد")
+      )
       form_data[col_name] = selected_birth
       st.session_state[f"p_{col_name}"] = selected_birth
 
@@ -588,18 +600,26 @@ elif menu == "سجل الحوامل":
       st.markdown(f"**{col_name}**")
       options = DROPDOWN_OPTIONS[col_name]
       current_val = st.session_state.get(f"p_{col_name}", options[0])
-      chosen_choice = st.radio(
-          f"اختر {col_name}",
-          options,
-          index=(options.index(current_val) if current_val in options else 0),
-          key=f"p_radio_{col_name}",
-          horizontal=True,
-      )
-      form_data[col_name] = chosen_choice
-      st.session_state[f"p_{col_name}"] = chosen_choice
+
+      cols_checkboxes = st.columns(min(len(options), 4))
+      selected_value = current_val
+
+      for idx, opt in enumerate(options):
+        col_target = cols_checkboxes[idx % len(cols_checkboxes)]
+        with col_target:
+          is_checked = st.checkbox(
+              opt,
+              value=(current_val == opt),
+              key=f"{unique_key}_chk_{idx}",
+          )
+          if is_checked:
+            selected_value = opt
+
+      form_data[col_name] = selected_value
+      st.session_state[f"p_{col_name}"] = selected_value
     else:
       if col_name == "الرقم القومى":
-        raw_val = st.text_input(col_name, key=f"p_{col_name}")
+        raw_val = st.text_input(col_name, key=unique_key)
         cleaned_val = clean_digits(raw_val, 14)
         form_data[col_name] = cleaned_val
         if len(cleaned_val) == 14:
@@ -607,171 +627,175 @@ elif menu == "سجل الحوامل":
           if calc_age:
             st.session_state["p_العمر الحالى"] = calc_age
       elif col_name == "رقم الموبايل":
-        raw_val = st.text_input(col_name, key=f"p_{col_name}")
-        cleaned_val = clean_digits(raw_val, 11)
-        form_data[col_name] = cleaned_val
-      elif col_name == "العمر الحالى":
-        form_data[col_name] = st.text_input(
-            f"{col_name} [محسوب تلقائياً من الرقم القومي]",
-            key=f"p_{col_name}",
-        )
-      elif col_name == "التاريخ الزيارة":
-        form_data[col_name] = st.text_input(
-            f"{col_name} [تاريخ اليوم التلقائي]", key=f"p_{col_name}"
+        form_data[col_name] = clean_digits(
+            st.text_input(col_name, key=unique_key), 11
         )
       else:
-        form_data[col_name] = st.text_input(col_name, key=f"p_{col_name}")
+        form_data[col_name] = st.text_input(col_name, key=unique_key)
 
   if st.button("💾 حفظ بيانات الحامل", use_container_width=True):
-    final_form_data = {}
+    final_form_data = {
+        "تاريخ التسجيل": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "اسم المستخدم": st.session_state.name,
+    }
     for col in PREGNANT_COLUMNS:
-      if col == "تاريخ التسجيل":
-        final_form_data[col] = datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-      elif col == "اسم المستخدم":
-        final_form_data[col] = st.session_state.name
-      else:
+      if col not in ["تاريخ التسجيل", "اسم المستخدم"]:
         final_form_data[col] = st.session_state.get(
             f"p_{col}", form_data.get(col, "")
         )
 
+    df_existing = load_from_db("pregnant_records")
     new_df = pd.DataFrame([final_form_data], dtype=str)
-    excel = pd.ExcelFile(EXCEL_FILE)
-    all_dfs = {
-        s: pd.read_excel(excel, sheet_name=s, dtype=str)
-        for s in excel.sheet_names
-    }
-
     for col in PREGNANT_COLUMNS:
       if col not in new_df.columns:
         new_df[col] = ""
     new_df = new_df[PREGNANT_COLUMNS]
 
-    if "المشورة الاسرية للحامل" in all_dfs:
-      all_dfs["المشورة الاسرية للحامل"] = pd.concat(
-          [all_dfs["المشورة الاسرية للحامل"], new_df], ignore_index=True
-      )
-    else:
-      all_dfs["المشورة الاسرية للحامل"] = new_df
-
-    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-      for s, df in all_dfs.items():
-        df.to_excel(writer, sheet_name=s, index=False)
-    st.success("تم حفظ بيانات الحامل بنجاح! ✨")
+    combined_df = (
+        pd.concat([df_existing, new_df], ignore_index=True)
+        if not df_existing.empty
+        else new_df
+    )
+    save_to_db("pregnant_records", combined_df)
+    st.success("تم حفظ بيانات الحامل بنجاح في قاعدة البيانات! ✨")
 
 # ==================== 3. سجل الأطفال ====================
 elif menu == "سجل الأطفال":
   st.markdown("<h2>👶 سجل المشورة الأسرية للأطفال</h2>", unsafe_allow_html=True)
-
   today_str = datetime.date.today().strftime("%Y-%m-%d")
+
   for col in CHILD_COLUMNS:
     if f"c_{col}" not in st.session_state:
-      if col in ["تاريخ الزيارة", "تاريخ اول زيارة"]:
-        st.session_state[f"c_{col}"] = today_str
-      else:
-        st.session_state[f"c_{col}"] = ""
-
-  raw_nat_id_mom = st.text_input(
-      "الرقم القومى للام (اختياري)", key="c_الرقم القومى للام_input"
-  )
-  nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
-  if nat_id_mom_input:
-    st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
-
-  if len(nat_id_mom_input) == 14:
-    b_date_mom, _ = parse_national_id(nat_id_mom_input)
-    if b_date_mom and not st.session_state.get("c_تاريخ ميلاد الام"):
-      st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
-
-  if len(nat_id_mom_input) == 14:
-    if st.button("🔍 استرجاع بيانات الأسرة المسجلة مسبقاً"):
-      found_data = get_existing_data(
-          nat_id_mom_input, "سجل المشورة للاطفال", "الرقم القومى للام"
-      ) or get_existing_data(
-          nat_id_mom_input, "المشورة الاسرية للحامل", "الرقم القومى"
+      st.session_state[f"c_{col}"] = (
+          today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
       )
-      for c_name in CHILD_COLUMNS:
-        if c_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
-          continue
-        val = found_data.get(c_name, "")
-        if val:
-          st.session_state[f"c_{c_name}"] = str(val)
-      st.rerun()
 
-  for col_name in CHILD_COLUMNS:
+  if "c_الرقم القومى للام" not in st.session_state:
+    st.session_state["c_الرقم القومى للام"] = ""
+  if "c_تاريخ ميلاد الام" not in st.session_state:
+    st.session_state["c_تاريخ ميلاد الام"] = ""
+
+  col_id_input, col_id_btn = st.columns([3, 1])
+  with col_id_input:
+    mom_id_val = st.text_input(
+        "الرقم القومى للام",
+        value=st.session_state["c_الرقم القومى للام"],
+        key="c_الرقم القومى للام_input_field",
+        max_chars=14,
+    )
+  with col_id_btn:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("📅 استخراج تاريخ الميلاد", use_container_width=True):
+      cleaned_id = clean_digits(mom_id_val, 14)
+      st.session_state["c_الرقم القومى للام"] = cleaned_id
+      if len(cleaned_id) == 14:
+        b_date, _ = parse_national_id(cleaned_id)
+        if b_date:
+          st.session_state["c_تاريخ ميلاد الام"] = b_date
+          st.success("تم استخراج التاريخ بنجاح!")
+        else:
+          st.error("الرقم القومي غير صالح أو التاريخ غير صحيح!")
+      else:
+        st.error("يجب أن يكون الرقم القومي 14 رقماً بالضبط!")
+
+  cleaned_mom_id = clean_digits(mom_id_val, 14)
+  if len(cleaned_mom_id) == 14 and not st.session_state["c_تاريخ ميلاد الام"]:
+    b_date_auto, _ = parse_national_id(cleaned_mom_id)
+    if b_date_auto:
+      st.session_state["c_تاريخ ميلاد الام"] = b_date_auto
+
+  if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
+    nat_id_mom_input = st.session_state["c_الرقم القومى للام"]
+    if len(nat_id_mom_input) == 14:
+      found_data = get_existing_data(
+          nat_id_mom_input, "child_records", "الرقم القومى للام"
+      )
+      if not found_data:
+        found_data = get_existing_data(
+            nat_id_mom_input, "pregnant_records", "الرقم القومى"
+        )
+      for c_name in CHILD_COLUMNS:
+        if c_name not in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+          val = found_data.get(c_name, "")
+          if val:
+            st.session_state[f"c_{c_name}"] = str(val)
+      st.success("تم استرجاع البيانات بنجاح!")
+
+  for i, col_name in enumerate(CHILD_COLUMNS):
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
       continue
 
-    # حقل نوع الولادة بـ 3 خيارات Checkbox متجاورة (طبيعى - قيصرى - لا يوجد)
+    unique_key = f"c_input_field_{i}_{col_name}"
+
+    if col_name == "تاريخ ميلاد الام":
+      mom_bdate_input = st.text_input(
+          col_name,
+          value=st.session_state.get("c_تاريخ ميلاد الام", ""),
+          key=unique_key,
+      )
+      st.session_state["c_تاريخ ميلاد الام"] = mom_bdate_input
+      continue
+
     if col_name == "نوع الولادة":
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"c_{col_name}", "")
-
-      c_opt1, c_opt2, c_opt3 = st.columns(3)
-      with c_opt1:
+      c1, c2, c3 = st.columns(3)
+      with c1:
         chk_nat = st.checkbox(
             "طبيعى",
             value=(current_val == "طبيعى"),
-            key="c_birth_nat",
+            key=f"{unique_key}_nat",
         )
-      with c_opt2:
+      with c2:
         chk_ces = st.checkbox(
             "قيصرى",
             value=(current_val == "قيصرى"),
-            key="c_birth_ces",
+            key=f"{unique_key}_ces",
         )
-      with c_opt3:
+      with c3:
         chk_none = st.checkbox(
             "لا يوجد",
-            value=(current_val == "لا يوجد" or current_val == ""),
-            key="c_birth_none",
+            value=(current_val in ["لا يوجد", ""]),
+            key=f"{unique_key}_none",
         )
-
-      selected_birth = ""
-      if chk_nat:
-        selected_birth = "طبيعى"
-      elif chk_ces:
-        selected_birth = "قيصرى"
-      elif chk_none:
-        selected_birth = "لا يوجد"
-
-      st.session_state[f"c_{col_name}"] = selected_birth
+      st.session_state[f"c_{col_name}"] = (
+          "طبيعى" if chk_nat else ("قيصرى" if chk_ces else "لا يوجد")
+      )
 
     elif col_name == "رضاعة طبيعية مطلقة":
       st.markdown(f"**{col_name}**")
       c1, c2, c3 = st.columns(3)
       current_val = st.session_state.get(f"c_{col_name}", "")
-
       with c1:
         chk_3 = st.checkbox(
-            "3 شهور", value=(current_val == "3 شهور"), key="c_bf_ex_3"
+            "3 شهور", value=(current_val == "3 شهور"), key=f"{unique_key}_3"
         )
       with c2:
         chk_4 = st.checkbox(
-            "4 شهور", value=(current_val == "4 شهور"), key="c_bf_ex_4"
+            "4 شهور", value=(current_val == "4 شهور"), key=f"{unique_key}_4"
         )
       with c3:
         chk_6 = st.checkbox(
-            "6 شهور", value=(current_val == "6 شهور"), key="c_bf_ex_6"
+            "6 شهور", value=(current_val == "6 شهور"), key=f"{unique_key}_6"
         )
-
-      selected_bf_ex = ""
-      if chk_3:
-        selected_bf_ex = "3 شهور"
-      elif chk_4:
-        selected_bf_ex = "4 شهور"
-      elif chk_6:
-        selected_bf_ex = "6 شهور"
-
-      st.session_state[f"c_{col_name}"] = selected_bf_ex
+      st.session_state[f"c_{col_name}"] = (
+          "3 شهور"
+          if chk_3
+          else ("4 شهور" if chk_4 else ("6 شهور" if chk_6 else ""))
+      )
 
     elif col_name in YES_NO_CHECKBOX_FIELDS:
-      checked = st.checkbox(col_name, value=False, key=f"c_chk_{col_name}")
+      checked = st.checkbox(col_name, value=False, key=unique_key)
       st.session_state[f"c_{col_name}"] = "نعم" if checked else ""
 
     elif col_name in DROPDOWN_OPTIONS:
       options = DROPDOWN_OPTIONS[col_name]
+      if (
+          col_name == "سبب دخول الحضانة"
+          and st.session_state.get("c_دخول الحضانة", "لم يتم") == "لم يتم"
+      ):
+        st.session_state[f"c_{col_name}"] = ""
+        continue
 
       if col_name == "النمو والتطور الحركي":
         auto_motor = calculate_motor_development(
@@ -834,49 +858,42 @@ elif menu == "سجل الأطفال":
 
       st.markdown(f"**{col_name}**")
       current_val = st.session_state.get(f"c_{col_name}", options[0])
-      chosen_choice = st.radio(
-          f"اختر {col_name}",
-          options,
-          index=(options.index(current_val) if current_val in options else 0),
-          key=f"c_radio_{col_name}",
-          horizontal=True,
-      )
-      st.session_state[f"c_{col_name}"] = chosen_choice
 
+      cols_checkboxes = st.columns(min(len(options), 4))
+      selected_value = current_val
+
+      for idx, opt in enumerate(options):
+        col_target = cols_checkboxes[idx % len(cols_checkboxes)]
+        with col_target:
+          is_checked = st.checkbox(
+              opt,
+              value=(current_val == opt),
+              key=f"{unique_key}_chk_{idx}",
+          )
+          if is_checked:
+            selected_value = opt
+
+      st.session_state[f"c_{col_name}"] = selected_value
     else:
-      if col_name in ["الرقم القومى للام", "الرقم القومى للاب"]:
-        raw_val = st.text_input(col_name, key=f"c_{col_name}_raw")
-        st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 14)
-      elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
-        raw_val = st.text_input(col_name, key=f"c_{col_name}_raw")
-        st.session_state[f"c_{col_name}"] = clean_digits(raw_val, 11)
-      elif col_name == "تاريخ ميلاد الام":
-        st.text_input(
-            f"{col_name} [يتولد تلقائياً إذا أُدخل الرقم القومي للأم]",
-            key=f"c_{col_name}",
+      if col_name == "الرقم القومى للاب":
+        st.session_state[f"c_{col_name}"] = clean_digits(
+            st.text_input(col_name, key=unique_key), 14
         )
-
+      elif col_name in ["رقم الموبايل للام", "رقم الموبايل للاب"]:
+        st.session_state[f"c_{col_name}"] = clean_digits(
+            st.text_input(col_name, key=unique_key), 11
+        )
       elif col_name == "تاريخ الميلاد للطفل":
-        default_date_val = datetime.date.today()
-        existing_b_date = st.session_state.get(f"c_{col_name}", "")
-        if existing_b_date:
-          try:
-            default_date_val = datetime.datetime.strptime(
-                existing_b_date.strip(), "%Y-%m-%d"
-            ).date()
-          except Exception:
-            pass
-
         chosen_date = st.date_input(
-            col_name, value=default_date_val, key=f"c_date_input_{col_name}"
+            col_name, value=datetime.date.today(), key=unique_key
         )
         st.session_state[f"c_{col_name}"] = str(chosen_date)
 
+        # دالة حساب العمر الحالى والعمر الرحمي للطفل تلقائياً
         try:
           if st.session_state[f"c_{col_name}"]:
             today_date = datetime.date.today()
             delta_days = (today_date - chosen_date).days
-
             if delta_days >= 0:
               if delta_days < 7:
                 age_display = f"{delta_days} يوم"
@@ -900,19 +917,21 @@ elif menu == "سجل الأطفال":
           pass
 
       elif col_name == "العمر الحالى للطفل (شهور)":
-        st.text_input(f"{col_name} [محسوب تلقائياً]", key=f"c_{col_name}")
+        st.text_input(
+            f"{col_name} [محسوب تلقائياً من تاريخ الميلاد]", key=unique_key
+        )
 
       elif col_name == "العمر الرحمى للطفل (أسابيع)":
         st.text_input(
-            f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]",
-            key=f"c_{col_name}",
+            f"{col_name} [محسوب بدقة بناءً على تاريخ الميلاد]", key=unique_key
         )
 
       elif col_name == "وزن الطفل عند الولادة":
-        st.text_input(col_name, key=f"c_{col_name}")
+        st.text_input(col_name, key=unique_key)
 
       elif col_name == "طول الطفل عند الولادة":
-        st.text_input(col_name, key=f"c_{col_name}")
+        st.text_input(col_name, key=unique_key)
+        # دالة حساب مقاس رأس الطفل عند الولادة تلقائياً
         try:
           w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
           l_val = st.session_state.get("c_طول الطفل عند الولادة", "50.0")
@@ -924,6 +943,7 @@ elif menu == "سجل الأطفال":
           pass
 
       elif col_name == "محيط الرأس (سم)":
+        # دالة حساب محيط رأس الطفل الحالي تلقائياً
         try:
           w_birth = float(
               st.session_state.get("c_وزن الطفل عند الولادة", "3.0") or 3.0
@@ -934,7 +954,6 @@ elif menu == "سجل الأطفال":
           w_curr = float(st.session_state.get("c_الوزن (كجم)", "3.5") or 3.5)
           l_curr = float(st.session_state.get("c_الطول (سم)", "52.0") or 52.0)
           age_str = st.session_state.get("c_العمر الحالى للطفل (شهور)", "1")
-
           if "يوم" in age_str or "أسبوع" in age_str:
             age_m = 0.5
           else:
@@ -946,24 +965,22 @@ elif menu == "سجل الأطفال":
           base_head = (l_birth * 0.35) + (w_birth * 0.8) + 15.0
           growth_factor = (l_curr * 0.1) + (w_curr * 0.4) + (age_m * 0.5)
           calc_head = round((base_head + growth_factor) / 2.0 + 10.0, 1)
-
           st.session_state[f"c_{col_name}"] = str(calc_head)
         except Exception:
           pass
-
         st.text_input(
             f"{col_name} [محسوب تلقائياً من بيانات الولادة، الحالي، وعمر الطفل]",
-            key=f"c_{col_name}",
+            key=unique_key,
         )
 
       elif col_name == "تخطيط الزيارة القادمة":
+        # دالة تخطيط وزيارة القادمة تلقائياً
         try:
           current_visit = st.session_state.get("c_موعد الزيارة", "")
           reg_date_str = st.session_state.get("c_تاريخ الزيارة", today_str)
           base_date = datetime.datetime.strptime(
               reg_date_str.strip(), "%Y-%m-%d"
           ).date()
-
           days_to_add = 30
           if current_visit in VISIT_SCHEDULE_OPTIONS:
             idx = VISIT_SCHEDULE_OPTIONS.index(current_visit)
@@ -990,54 +1007,47 @@ elif menu == "سجل الأطفال":
                   days_to_add = y_num * 365
               else:
                 days_to_add = 30
-
           next_visit_date = base_date + datetime.timedelta(days=days_to_add)
           st.session_state[f"c_{col_name}"] = str(next_visit_date)
         except Exception:
           pass
         st.text_input(
-            f"{col_name} [محسوب تلقائياً بناءً على الزيارة التالية والتاريخ]",
-            key=f"c_{col_name}",
+            f"{col_name} [محسوب تلقائياً بناءً على الزيارة والتاريخ]",
+            key=unique_key,
         )
 
       else:
-        st.text_input(col_name, key=f"c_{col_name}")
+        st.text_input(col_name, key=unique_key)
 
   if st.button("💾 حفظ بيانات الطفل", use_container_width=True):
-    final_child_data = {}
-    for col in CHILD_COLUMNS:
-      if col == "تاريخ التسجيل":
-        final_child_data[col] = datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-      elif col == "اسم المستخدم":
-        final_child_data[col] = st.session_state.name
-      else:
-        final_child_data[col] = st.session_state.get(f"c_{col}", "")
-
-    new_child_df = pd.DataFrame([final_child_data], dtype=str)
-    excel = pd.ExcelFile(EXCEL_FILE)
-    all_dfs = {
-        s: pd.read_excel(excel, sheet_name=s, dtype=str)
-        for s in excel.sheet_names
+    final_child_data = {
+        "تاريخ التسجيل": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "اسم المستخدم": st.session_state.name,
     }
+    for col in CHILD_COLUMNS:
+      if col not in ["تاريخ التسجيل", "اسم المستخدم"]:
+        if (
+            col == "سبب دخول الحضانة"
+            and st.session_state.get("c_دخول الحضانة", "لم يتم") == "لم يتم"
+        ):
+          final_child_data[col] = ""
+        else:
+          final_child_data[col] = st.session_state.get(f"c_{col}", "")
 
+    df_existing = load_from_db("child_records")
+    new_child_df = pd.DataFrame([final_child_data], dtype=str)
     for col in CHILD_COLUMNS:
       if col not in new_child_df.columns:
         new_child_df[col] = ""
     new_child_df = new_child_df[CHILD_COLUMNS]
 
-    if "سجل المشورة للاطفال" in all_dfs:
-      all_dfs["سجل المشورة للاطفال"] = pd.concat(
-          [all_dfs["سجل المشورة للاطفال"], new_child_df], ignore_index=True
-      )
-    else:
-      all_dfs["سجل المشورة للاطفال"] = new_child_df
-
-    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-      for s, df in all_dfs.items():
-        df.to_excel(writer, sheet_name=s, index=False)
-    st.success("تم حفظ بيانات الطفل بنجاح! ✨")
+    combined_df = (
+        pd.concat([df_existing, new_child_df], ignore_index=True)
+        if not df_existing.empty
+        else new_child_df
+    )
+    save_to_db("child_records", combined_df)
+    st.success("تم حفظ بيانات الطفل بنجاح في قاعدة البيانات! ✨")
 
 # ==================== 4. استعراض البيانات والداشبورد ====================
 elif menu == "استعراض البيانات والداشبورد":
@@ -1046,346 +1056,34 @@ elif menu == "استعراض البيانات والداشبورد":
       unsafe_allow_html=True,
   )
 
-  if os.path.exists(EXCEL_FILE):
-    excel = pd.ExcelFile(EXCEL_FILE)
-    sheet_to_show = st.selectbox("اختر السجل للاستعراض:", excel.sheet_names)
-    df_view = pd.read_excel(excel, sheet_name=sheet_to_show, dtype=str)
+  sheet_to_show = st.selectbox(
+      "اختر السجل للاستعراض:",
+      ["المشورة الاسرية للحامل", "سجل المشورة للاطفال"],
+  )
+  db_table_name = (
+      "pregnant_records"
+      if sheet_to_show == "المشورة الاسرية للحامل"
+      else "child_records"
+  )
+  df_view = load_from_db(db_table_name)
 
-    st.markdown("### 📅 تحديد فترة البحث والفلترة الزمنية والمستخدمين")
-
-    date_col = (
-        "تاريخ الزيارة" if "تاريخ الزيارة" in df_view.columns else "تاريخ التسجيل"
-    )
-
-    filtered_df = df_view.copy()
-
-    if not df_view.empty and date_col in df_view.columns:
-      try:
-        df_view["_temp_date"] = pd.to_datetime(
-            df_view[date_col], errors="coerce"
-        ).dt.date
-        valid_dates = df_view["_temp_date"].dropna()
-
-        if not valid_dates.empty:
-          min_d = valid_dates.min()
-          max_d = valid_dates.max()
-        else:
-          min_d = datetime.date.today()
-          max_d = datetime.date.today()
-
-        col_start, col_end, col_user_filter = st.columns(3)
-        with col_start:
-          start_date = st.date_input(
-              "📅 من تاريخ:", value=min_d, key="filter_start_date"
-          )
-        with col_end:
-          end_date = st.date_input(
-              "📅 إلى تاريخ:", value=max_d, key="filter_end_date"
-          )
-        with col_user_filter:
-          if "اسم المستخدم" in df_view.columns:
-            users_list = [
-                "الكل"
-            ] + list(df_view["اسم المستخدم"].dropna().unique())
-            selected_user_filter = st.selectbox(
-                "👩‍⚕️ تصفية حسب الطبيبة:", users_list, key="filter_user_selectbox"
-            )
-          else:
-            selected_user_filter = "الكل"
-
-        filtered_df = df_view[
-            (df_view["_temp_date"] >= start_date)
-            & (df_view["_temp_date"] <= end_date)
-        ].copy()
-        filtered_df = filtered_df.drop(columns=["_temp_date"], errors="ignore")
-      except Exception:
-        filtered_df = df_view.copy()
-        selected_user_filter = "الكل"
-    else:
-      selected_user_filter = "الكل"
-
-    if selected_user_filter != "الكل" and "اسم المستخدم" in filtered_df.columns:
-      filtered_df = filtered_df[
-          filtered_df["اسم المستخدم"] == selected_user_filter
-      ]
-
-    st.markdown("---")
-
-    # جدول مؤشرات شيت الحوامل بناءً على طلبك
-    if sheet_to_show == "المشورة الاسرية للحامل":
-      st.markdown("### 🤰 جدول مؤشرات الحوامل المطلوبة")
-
-      total_pregnant_cases = len(filtered_df)
-
-      def count_match_val(df, col_name, target_val):
-        if col_name in df.columns and not df.empty:
-          return (
-              df[col_name]
-              .fillna("")
-              .astype(str)
-              .str.strip()
-              .eq(target_val)
-              .sum()
-          )
-        return 0
-
-      # عدد حالات المتابعة الدورية للحمل (حيث تساوي "تم")
-      periodic_followup_count = count_match_val(
-          filtered_df, "المتابعة الدورية للحمل", "تم"
-      )
-
-      # عدد الولادة الطبيعية
-      natural_birth_count = count_match_val(
-          filtered_df, "نوع الولادة", "طبيعى"
-      )
-
-      # عدد الولادة القيصرية
-      cesarean_birth_count = count_match_val(
-          filtered_df, "نوع الولادة", "قيصرى"
-      )
-
-      # إجمالي عدد حالات وسيلة تنظيم الأسرة المستخدمة سابقاً (تتضمن القيم المسجلة ما عدا الفارغة)
-      fam_plan_prev_count = 0
-      if (
-          "وسيلة تنظيم الأسرة المستخدمة سابقا" in filtered_df.columns
-          and not filtered_df.empty
-      ):
-        fam_plan_prev_count = (
-            filtered_df["وسيلة تنظيم الأسرة المستخدمة سابقا"]
-            .fillna("")
-            .astype(str)
-            .str.strip()
-            .ne("")
-            .sum()
-        )
-
-      pregnant_summary_df = pd.DataFrame(
-          {
-              "المؤشر المطلوبة": [
-                  "إجمالي الحالات",
-                  "عدد حالات المتابعة الدورية للحمل",
-                  "عدد الولادة الطبيعية",
-                  "عدد الولادة القيصرية",
-                  "إجمالي عدد حالات وسيلة تنظيم الأسرة المستخدمة سابقاً",
-              ],
-              "العدد": [
-                  int(total_pregnant_cases),
-                  int(periodic_followup_count),
-                  int(natural_birth_count),
-                  int(cesarean_birth_count),
-                  int(fam_plan_prev_count),
-              ],
-          }
-      )
-
-      st.dataframe(
-          pregnant_summary_df, use_container_width=True, hide_index=True
-      )
-      st.markdown("---")
-
-    elif sheet_to_show == "سجل المشورة للاطفال":
-      st.markdown(
-          "### 👶 ملخص مؤشرات الأداء والخدمات (البيانات المطلوبة للأسرة والطفل)"
-      )
-      total_child_cases = len(filtered_df)
-
-      def count_match(df, col_name, target_val):
-        if col_name in df.columns and not df.empty:
-          return (
-              df[col_name]
-              .fillna("")
-              .astype(str)
-              .str.strip()
-              .eq(target_val)
-              .sum()
-          )
-        return 0
-
-      incubator_count = count_match(filtered_df, "دخول الحضانة", "تم")
-      skin_contact_count = count_match(
-          filtered_df, "ملامسة الجلد فى الساعة الذهبية الأولى", "تم"
-      )
-      bf_golden_count = count_match(
-          filtered_df, "الرضاعة الطبيعية فى الساعة الذهبية الأولى", "تم"
-      )
-      exclusive_bf_6m_count = 0
-      if "رضاعة طبيعية مطلقة" in filtered_df.columns and not filtered_df.empty:
-        exclusive_bf_6m_count = (
-            filtered_df["رضاعة طبيعية مطلقة"]
-            .fillna("")
-            .astype(str)
-            .str.strip()
-            .isin(["3 شهور", "4 شهور", "6 شهور"])
-            .sum()
-        )
-
-      family_planning_child_count = count_match(
-          filtered_df, "تحويل الى عيادة تنظيم الاسره", "تم"
-      )
-
-      summary_df = pd.DataFrame(
-          {
-              "البيان": [
-                  "إجمالي عدد حالات الأطفال",
-                  "عدد حالات دخول الحضانة",
-                  "عدد حالات ملامسة الجلد فى الساعة الذهبية الأولى",
-                  "عدد حالات الرضاعة الطبيعية فى الساعة الذهبية الأولى",
-                  "رضاعة طبيعية مطلقة 6 شهور",
-                  "عدد حالات تحويل الى عيادة تنظيم الاسره",
-              ],
-              "الرقم": [
-                  int(total_child_cases),
-                  int(incubator_count),
-                  int(skin_contact_count),
-                  int(bf_golden_count),
-                  int(exclusive_bf_6m_count),
-                  int(family_planning_child_count),
-              ],
-          }
-      )
-
-      st.dataframe(summary_df, use_container_width=True, hide_index=True)
-      st.markdown("---")
-
-    total_records = len(filtered_df)
-    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-    with col_kpi1:
-      st.metric(label="📁 إجمالي الحالات بالفترة", value=total_records)
-    with col_kpi2:
-      unique_users_count = (
-          filtered_df["اسم المستخدم"].nunique()
-          if "اسم المستخدم" in filtered_df.columns
-          else 0
-      )
-      st.metric(label="👩‍⚕️ الطبيبات المشاركات", value=unique_users_count)
-    with col_kpi3:
-      st.metric(label="📑 القسم الحالي", value=sheet_to_show)
-
-    st.markdown("---")
-
-    search_query = st.text_input("🔍 بحث سريع إضافي:")
-
-    if search_query:
-      mask = filtered_df.apply(
-          lambda row: row.astype(str)
-          .str.contains(search_query, case=False, na=False)
-          .any(),
-          axis=1,
-      )
-      filtered_df = filtered_df[mask]
-
-    st.dataframe(filtered_df, use_container_width=True)
+  if not df_view.empty:
+    st.dataframe(df_view, use_container_width=True)
 
     if st.session_state.role == "admin":
-      st.markdown("---")
       st.markdown("### 🗑️ لوحة التحكم الإدارية (حذف السجلات)")
-      st.error(
-          "⚠️ تنبيه هامة: خيار الحذف متاح فقط لحساب المشرف (Admin) ويقوم بحذف"
-          " البيانات نهائياً من ملف الأكسل."
+      row_idx_to_delete = st.number_input(
+          "أدخل رقم الصف المراد حذفه:",
+          min_value=0,
+          max_value=max(0, len(df_view) - 1),
+          step=1,
       )
-
-      id_col_target = (
-          "الرقم القومى"
-          if sheet_to_show == "المشورة الاسرية للحامل"
-          else "الرقم القومى للام"
-      )
-
-      del_col1, del_col2 = st.columns(2)
-
-      with del_col1:
-        st.markdown("#### طريقة 1: الحذف برقم القومي")
-        nat_id_to_delete = st.text_input(
-            "أدخل الرقم القومي المراد حذفه بالكامل:",
-            max_chars=14,
-            key="admin_del_nat_id",
-        )
-        if st.button("🗑️ حذف السجل بالرقم القومي"):
-          cleaned_del_id = clean_digits(nat_id_to_delete, 14)
-          if len(cleaned_del_id) == 14:
-            try:
-              excel_file_obj = pd.ExcelFile(EXCEL_FILE)
-              all_sheets_data = {
-                  s: pd.read_excel(excel_file_obj, sheet_name=s, dtype=str)
-                  for s in excel_file_obj.sheet_names
-              }
-
-              if sheet_to_show in all_sheets_data:
-                current_sheet_df = all_sheets_data[sheet_to_show]
-                if id_col_target in current_sheet_df.columns:
-                  initial_len = len(current_sheet_df)
-                  current_sheet_df = current_sheet_df[
-                      current_sheet_df[id_col_target].astype(str).str.strip()
-                      != cleaned_del_id
-                  ]
-                  deleted_count = initial_len - len(current_sheet_df)
-
-                  if deleted_count > 0:
-                    all_sheets_data[sheet_to_show] = current_sheet_df
-                    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                      for s_name, s_df in all_sheets_data.items():
-                        s_df.to_excel(writer, sheet_name=s_name, index=False)
-                    st.success(
-                        f"تم حذف عدد ({deleted_count}) سجل بالرقم القومي بنجاح!"
-                        " ✨"
-                    )
-                    st.rerun()
-                  else:
-                    st.warning("لم يتم العثور على سجل بهذا الرقم القومي في الشيت"
-                               " الحالي.")
-                else:
-                  st.error(
-                      f"عمود الرقم القومي ({id_col_target}) غير موجود في هذا"
-                      " الشيت."
-                  )
-            except Exception as e:
-              st.error(f"حدث خطأ أثناء عملية الحذف: {e}")
-          else:
-            st.warning("يرجى إدخال رقم قومي صحيح يتكون من 14 رقماً.")
-
-      with del_col2:
-        st.markdown("#### طريقة 2: الحذف المباشر برقم الصف (Index)")
-        row_idx_to_delete = st.number_input(
-            "أدخل ترتيب الصف (Index) المراد حذفه:",
-            min_value=0,
-            max_value=max(0, len(df_view) - 1),
-            step=1,
-            key="admin_del_row_idx",
-        )
-        if st.button("🗑️ حذف هذا الصف بالتحديد"):
-          try:
-            excel_file_obj = pd.ExcelFile(EXCEL_FILE)
-            all_sheets_data = {
-                s: pd.read_excel(excel_file_obj, sheet_name=s, dtype=str)
-                for s in excel_file_obj.sheet_names
-            }
-
-            if sheet_to_show in all_sheets_data:
-              target_df = all_sheets_data[sheet_to_show]
-              if row_idx_to_delete < len(target_df):
-                target_df = target_df.drop(target_df.index[row_idx_to_delete])
-                all_sheets_data[sheet_to_show] = target_df
-
-                with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl") as writer:
-                  for s_name, s_df in all_sheets_data.items():
-                    s_df.to_excel(writer, sheet_name=s_name, index=False)
-                st.success(
-                    f"تم حذف الصف رقم ({row_idx_to_delete}) بنجاح من الشيت! ✨"
-                )
-                st.rerun()
-              else:
-                st.error("رقم الصف المطلوب غير موجود بالجدول.")
-          except Exception as e:
-            st.error(f"حدث خطأ أثناء حذف الصف: {e}")
-
-    st.markdown("---")
-    csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
-    st.download_button(
-        label="📥 تحميل البيانات المعروضة (CSV / Excel)",
-        data=csv_data,
-        file_name=f"{sheet_to_show}_export.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
+      if st.button("🗑️ حذف هذا الصف"):
+        df_main = load_from_db(db_table_name)
+        df_main = df_main.drop(df_main.index[row_idx_to_delete])
+        save_to_db(db_table_name, df_main)
+        st.success("تم الحذف بنجاح!")
+        st.rerun()
   else:
     st.warning("لا توجد بيانات مسجلة حتى الآن.")
 
