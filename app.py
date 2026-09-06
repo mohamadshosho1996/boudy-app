@@ -408,18 +408,37 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             st.session_state[f"c_{col}"] = today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
 
-    # حقل الرقم القومي للأم مع حساب تلقائي وفوري لتاريخ الميلاد
-    raw_nat_id_mom = st.text_input("الرقم القومى للام", key="c_الرقم القومى للام_input")
-    nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
-    
-    if nat_id_mom_input:
-        st.session_state["c_الرقم القومى للام"] = nat_id_mom_input
-        b_date_mom, _ = parse_national_id(nat_id_mom_input)
-        if b_date_mom:
-            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+    if "c_الرقم القومى للام" not in st.session_state:
+        st.session_state["c_الرقم القومى للام"] = ""
+    if "c_تاريخ ميلاد الام" not in st.session_state:
+        st.session_state["c_تاريخ ميلاد الام"] = ""
 
-    # زر استرجاع البيانات المسجلة للأسرة فقط (بدون زر حساب تاريخ الميلاد)
+    # دالة التحديث التلقائي لتاريخ الميلاد عند كتابة الرقم القومي
+    def update_mom_birth_date():
+        raw_val = st.session_state.get("nat_id_mom_field", "")
+        cleaned_id = clean_digits(raw_val, 14)
+        st.session_state["c_الرقم القومى للام"] = cleaned_id
+        if len(cleaned_id) == 14:
+            b_date_mom, _ = parse_national_id(cleaned_id)
+            if b_date_mom:
+                st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
+            else:
+                st.session_state["c_تاريخ ميلاد الام"] = ""
+        else:
+            st.session_state["c_تاريخ ميلاد الام"] = ""
+
+    # حقل الرقم القومي للأم مع ربطه بدالة التحديث الفوري
+    st.text_input(
+        "الرقم القومى للام", 
+        value=st.session_state["c_الرقم القومى للام"], 
+        key="nat_id_mom_field", 
+        max_chars=14,
+        on_change=update_mom_birth_date
+    )
+
+    # زر استرجاع بيانات الأسرة المسجلة
     if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
+        nat_id_mom_input = st.session_state["c_الرقم القومى للام"]
         if len(nat_id_mom_input) == 14:
             found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
             if not found_data:
@@ -438,9 +457,7 @@ elif menu == "سجل الأطفال":
         unique_key = f"c_input_field_{i}_{col_name}"
         
         if col_name == "تاريخ ميلاد الام":
-            auto_mom_bdate = st.session_state.get("c_تاريخ ميلاد الام", "")
-            st.text_input(col_name, value=auto_mom_bdate, key=unique_key)
-            st.session_state[f"c_{col_name}"] = auto_mom_bdate
+            st.text_input(col_name, value=st.session_state.get("c_تاريخ ميلاد الام", ""), key=unique_key)
             continue
 
         if col_name == "نوع الولادة":
