@@ -320,7 +320,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة وتم ضبط التعبئة التلقائية لتاريخ ميلاد الأم.")
+    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة وتم ضبط التعبئة التلقائية لتاريخ ميلاد الأم من الرقم القومي أوتوماتيكياً.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -408,7 +408,7 @@ elif menu == "سجل الأطفال":
         if f"c_{col}" not in st.session_state:
             st.session_state[f"c_{col}"] = today_str if col in ["تاريخ الزيارة", "تاريخ اول زيارة"] else ""
 
-    # حقل الرقم القومي للأم مع حساب فوري لتاريخ الميلاد
+    # حقل الرقم القومي للأم مع حساب تلقائي وفوري لتاريخ الميلاد
     raw_nat_id_mom = st.text_input("الرقم القومى للام", key="c_الرقم القومى للام_input")
     nat_id_mom_input = clean_digits(raw_nat_id_mom, 14)
     
@@ -418,30 +418,18 @@ elif menu == "سجل الأطفال":
         if b_date_mom:
             st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
 
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("⚡ حساب تاريخ الميلاد أوتوماتيكياً", use_container_width=True):
-            if len(nat_id_mom_input) == 14:
-                b_date_mom, _ = parse_national_id(nat_id_mom_input)
-                if b_date_mom:
-                    st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
-                    st.success(f"تم استخراج تاريخ الميلاد: {b_date_mom}")
-                else:
-                    st.error("الرقم القومي غير صحيح!")
-            else:
-                st.warning("يرجى إدخال 14 رقماً صحيحة للرقم القومي للأم.")
-    with col_btn2:
-        if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
-            if len(nat_id_mom_input) == 14:
-                found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
-                if not found_data:
-                    found_data = get_existing_data(nat_id_mom_input, "pregnant_records", "الرقم القومى")
-                for c_name in CHILD_COLUMNS:
-                    if c_name not in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
-                        val = found_data.get(c_name, "")
-                        if val: st.session_state[f"c_{c_name}"] = str(val)
-                st.success("تم استرجاع البيانات بنجاح!")
-                st.rerun()
+    # زر استرجاع البيانات المسجلة للأسرة فقط (بدون زر حساب تاريخ الميلاد)
+    if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
+        if len(nat_id_mom_input) == 14:
+            found_data = get_existing_data(nat_id_mom_input, "child_records", "الرقم القومى للام")
+            if not found_data:
+                found_data = get_existing_data(nat_id_mom_input, "pregnant_records", "الرقم القومى")
+            for c_name in CHILD_COLUMNS:
+                if c_name not in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
+                    val = found_data.get(c_name, "")
+                    if val: st.session_state[f"c_{c_name}"] = str(val)
+            st.success("تم استرجاع البيانات بنجاح!")
+            st.rerun()
 
     for i, col_name in enumerate(CHILD_COLUMNS):
         if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
