@@ -13,18 +13,13 @@ SCOPE = [
 
 def get_gspread_client():
     if "gcp_service_account" in st.secrets:
+        # تحويل بيانات الـ secrets إلى قاموس عادي وتنظيف المفتاح الخاص بشكل سليم
         sec = dict(st.secrets["gcp_service_account"])
-        
-        # تنظيف ومعالجة المفتاح الخاص لضمان التوافق التام مع مكتبة التشفير
         private_key = sec.get("private_key", "")
-        if isinstance(private_key, str):
-            private_key = private_key.strip()
-            if "\\n" in private_key:
-                private_key = private_key.replace("\\n", "\n")
-            private_key = private_key.strip('"').strip("'")
+        if private_key:
+            private_key = private_key.strip().strip('"').strip("'")
+            sec["private_key"] = private_key
             
-        sec["private_key"] = private_key
-        
         creds = Credentials.from_service_account_info(sec, scopes=SCOPE)
         client = gspread.authorize(creds)
         return client
