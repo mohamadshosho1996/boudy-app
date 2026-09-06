@@ -730,10 +730,11 @@ elif menu == "سجل الأطفال":
     unique_key = f"c_input_field_{i}_{col_name}"
 
     if col_name == "تاريخ ميلاد الام":
+      # الحل الجذري هنا: جعل الحقل يعرض قيمة st.session_state مباشرة بدون key معارض
       mom_bdate_input = st.text_input(
           col_name,
           value=st.session_state.get("c_تاريخ ميلاد الام", ""),
-          key=unique_key,
+          key="c_تاريخ_ميلاد_الام_display_field",
       )
       st.session_state["c_تاريخ ميلاد الام"] = mom_bdate_input
       continue
