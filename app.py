@@ -23,7 +23,7 @@ def init_sqlite_db():
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
 
-  # إنشاء جدول الحوامل ديناميكياً بناءً على الأعمدة الفعلية
+  # 1. جدول الحوامل
   pregnant_cols_sql = ", ".join(
       [f'"{clean_col_name(col)}" TEXT' for col in PREGNANT_COLUMNS]
   )
@@ -35,8 +35,18 @@ def init_sqlite_db():
         )
     """
   )
+  # التأكد من إضافة أي أعمدة جديدة مستحدثة تلقائياً للجدول القائم
+  cursor.execute("PRAGMA table_info(pregnant_records)")
+  existing_p_cols = [row[1] for row in cursor.fetchall()]
+  for col in PREGNANT_COLUMNS:
+    c_name = clean_col_name(col)
+    if c_name not in existing_p_cols:
+      try:
+        cursor.execute(f'ALTER TABLE pregnant_records ADD COLUMN "{c_name}" TEXT')
+      except Exception:
+        pass
 
-  # إنشاء جدول الأطفال ديناميكياً بناءً على الأعمدة الفعلية
+  # 2. جدول الأطفال
   child_cols_sql = ", ".join(
       [f'"{clean_col_name(col)}" TEXT' for col in CHILD_COLUMNS]
   )
@@ -48,6 +58,16 @@ def init_sqlite_db():
         )
     """
   )
+  # التأكد من إضافة أي أعمدة جديدة مستحدثة تلقائياً للجدول القائم
+  cursor.execute("PRAGMA table_info(child_records)")
+  existing_c_cols = [row[1] for row in cursor.fetchall()]
+  for col in CHILD_COLUMNS:
+    c_name = clean_col_name(col)
+    if c_name not in existing_c_cols:
+      try:
+        cursor.execute(f'ALTER TABLE child_records ADD COLUMN "{c_name}" TEXT')
+      except Exception:
+        pass
 
   conn.commit()
   conn.close()
@@ -1390,7 +1410,7 @@ elif menu == "استعراض البيانات والداشبورد":
               st.success(
                   f"تم حذف عدد ({deleted_count}) سجل بالرقم القومي بنجاح! ✨"
               )
-              st.rerurn()
+              st.rerun()
             else:
               st.warning("لم يتم العثور على سجل بهذا الرقم القومي.")
           else:
@@ -1408,7 +1428,7 @@ elif menu == "استعراض البيانات والداشبورد":
           success_del = delete_from_db_by_index(target_table, row_idx_to_delete)
           if success_del:
             st.success("تم حذف الصف بنجاح! ✨")
-            st.rerurn()
+            st.rerun()
           else:
             st.error("رقم الصف المطلوب غير موجود.")
 
