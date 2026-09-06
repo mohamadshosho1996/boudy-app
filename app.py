@@ -413,23 +413,23 @@ elif menu == "سجل الأطفال":
     if "c_تاريخ ميلاد الام" not in st.session_state:
         st.session_state["c_تاريخ ميلاد الام"] = ""
 
-    def handle_mom_id_change():
-        val = st.session_state.get("nat_id_mom_input_key", "")
-        clean_id = clean_digits(val, 14)
-        st.session_state["c_الرقم القومى للام"] = clean_id
-        if len(clean_id) == 14:
-            b_date, _ = parse_national_id(clean_id)
-            st.session_state["c_تاريخ ميلاد الام"] = b_date if b_date else ""
-        else:
-            st.session_state["c_تاريخ ميلاد الام"] = ""
-
-    st.text_input(
+    # حقل الرقم القومي للأم مع التحديث التلقائي الفوري فور اكتمال الـ 14 رقماً
+    raw_mom_id = st.text_input(
         "الرقم القومى للام", 
         value=st.session_state["c_الرقم القومى للام"], 
-        key="nat_id_mom_input_key", 
-        max_chars=14,
-        on_change=handle_mom_id_change
+        key="c_الرقم القومى للام_input_field", 
+        max_chars=14
     )
+    
+    cleaned_mom_id = clean_digits(raw_mom_id, 14)
+    if cleaned_mom_id != st.session_state["c_الرقم القومى للام"]:
+        st.session_state["c_الرقم القومى للام"] = cleaned_mom_id
+        if len(cleaned_mom_id) == 14:
+            b_date_mom, _ = parse_national_id(cleaned_mom_id)
+            st.session_state["c_تاريخ ميلاد الام"] = b_date_mom if b_date_mom else ""
+        else:
+            st.session_state["c_تاريخ ميلاد الام"] = ""
+        st.rerun()
 
     if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
         nat_id_mom_input = st.session_state["c_الرقم القومى للام"]
