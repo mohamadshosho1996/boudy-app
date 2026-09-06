@@ -14,19 +14,11 @@ SCOPE = [
 def get_gspread_client():
     if "gcp_service_account" in st.secrets:
         sec = st.secrets["gcp_service_account"]
-        
-        # معالجة المفتاح الخاص لضمان تحويل الرموز النصية \n إلى أسطر جديدة حقيقية
-        raw_private_key = sec["private_key"]
-        if "\\n" in raw_private_key:
-            formatted_private_key = raw_private_key.replace("\\n", "\n")
-        else:
-            formatted_private_key = raw_private_key
-            
         creds_dict = {
             "type": sec["type"],
             "project_id": sec["project_id"],
             "private_key_id": sec["private_key_id"],
-            "private_key": formatted_private_key,
+            "private_key": sec["private_key"].replace("\\n", "\n"),
             "client_email": sec["client_email"],
             "client_id": sec["client_id"],
             "auth_uri": sec["auth_uri"],
