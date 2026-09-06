@@ -693,6 +693,7 @@ elif menu == "سجل الأطفال":
         if b_date:
           st.session_state["c_تاريخ ميلاد الام"] = b_date
           st.success("تم استخراج التاريخ بنجاح!")
+          st.rerun()  # إعادة تحميل الصفحة لتحديث حقل تاريخ الميلاد فوراً
         else:
           st.error("الرقم القومي غير صالح أو التاريخ غير صحيح!")
       else:
@@ -720,6 +721,7 @@ elif menu == "سجل الأطفال":
           if val:
             st.session_state[f"c_{c_name}"] = str(val)
       st.success("تم استرجاع البيانات بنجاح!")
+      st.rerun()
 
   for i, col_name in enumerate(CHILD_COLUMNS):
     if col_name in ["تاريخ التسجيل", "اسم المستخدم", "الرقم القومى للام"]:
@@ -889,7 +891,6 @@ elif menu == "سجل الأطفال":
         )
         st.session_state[f"c_{col_name}"] = str(chosen_date)
 
-        # دالة حساب العمر الحالى والعمر الرحمي للطفل تلقائياً
         try:
           if st.session_state[f"c_{col_name}"]:
             today_date = datetime.date.today()
@@ -931,7 +932,6 @@ elif menu == "سجل الأطفال":
 
       elif col_name == "طول الطفل عند الولادة":
         st.text_input(col_name, key=unique_key)
-        # دالة حساب مقاس رأس الطفل عند الولادة تلقائياً
         try:
           w_val = st.session_state.get("c_وزن الطفل عند الولادة", "3.0")
           l_val = st.session_state.get("c_طول الطفل عند الولادة", "50.0")
@@ -943,7 +943,6 @@ elif menu == "سجل الأطفال":
           pass
 
       elif col_name == "محيط الرأس (سم)":
-        # دالة حساب محيط رأس الطفل الحالي تلقائياً
         try:
           w_birth = float(
               st.session_state.get("c_وزن الطفل عند الولادة", "3.0") or 3.0
@@ -974,7 +973,6 @@ elif menu == "سجل الأطفال":
         )
 
       elif col_name == "تخطيط الزيارة القادمة":
-        # دالة تخطيط وزيارة القادمة تلقائياً
         try:
           current_visit = st.session_state.get("c_موعد الزيارة", "")
           reg_date_str = st.session_state.get("c_تاريخ الزيارة", today_str)
