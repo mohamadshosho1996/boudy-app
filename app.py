@@ -13,24 +13,19 @@ SCOPE = [
 
 def get_gspread_client():
     if "gcp_service_account" in st.secrets:
-        # قراءة البيانات يدوياً وتجهيز المفتاح الخاص بالشكل الصحيح لتجنب أي خطأ في التنسيق
-        sec = st.secrets["gcp_service_account"]
-        creds_dict = {
-            "type": sec["type"],
-            "project_id": sec["project_id"],
-            "private_key_id": sec["private_key_id"],
-            "private_key": sec["private_key"].replace("\\n", "\n"),
-            "client_email": sec["client_email"],
-            "client_id": sec["client_id"],
-            "auth_uri": sec["auth_uri"],
-            "token_uri": sec["token_uri"],
-            "auth_provider_x509_cert_url": sec["auth_provider_x509_cert_url"],
-            "client_x509_cert_url": sec["client_x509_cert_url"],
-        }
-        if "universe_domain" in sec:
-            creds_dict["universe_domain"] = sec["universe_domain"]
+        sec = dict(st.secrets["gcp_service_account"])
+        
+        # تنظيف ومعالجة المفتاح الخاص لضمان التوافق التام مع مكتبة التشفير
+        private_key = sec.get("private_key", "")
+        if isinstance(private_key, str):
+            private_key = private_key.strip()
+            if "\\n" in private_key:
+                private_key = private_key.replace("\\n", "\n")
+            private_key = private_key.strip('"').strip("'")
             
-        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
+        sec["private_key"] = private_key
+        
+        creds = Credentials.from_service_account_info(sec, scopes=SCOPE)
         client = gspread.authorize(creds)
         return client
     else:
