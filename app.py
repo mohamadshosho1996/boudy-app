@@ -320,7 +320,7 @@ st.markdown("---")
 # ==================== 1. الصفحة الرئيسية ====================
 if menu == "الصفحة الرئيسية":
     st.markdown("<h1>✨ مرحباً بكِ في نظام المشورة الأسرية الشامل ✨</h1>", unsafe_allow_html=True)
-    st.write("النظام يعمل بقاعدة بيانات SQLite مستقرة وتم ضبط التعبئة التلقائية لتاريخ ميلاد الأم من الرقم القومي أوتوماتيكياً.")
+    st.write("الرجاء اختيار القسم المطلوب من القائمة الجانبية (مثل: سجل الحوامل أو سجل الأطفال) للبدء في إدخال البيانات.")
 
 # ==================== 2. سجل الحوامل ====================
 elif menu == "سجل الحوامل":
@@ -413,28 +413,26 @@ elif menu == "سجل الأطفال":
     if "c_تاريخ ميلاد الام" not in st.session_state:
         st.session_state["c_تاريخ ميلاد الام"] = ""
 
-    # دالة التحديث التلقائي لتاريخ الميلاد عند كتابة الرقم القومي
-    def update_mom_birth_date():
-        raw_val = st.session_state.get("nat_id_mom_field", "")
-        cleaned_id = clean_digits(raw_val, 14)
-        st.session_state["c_الرقم القومى للام"] = cleaned_id
-        if len(cleaned_id) == 14:
-            b_date_mom, _ = parse_national_id(cleaned_id)
+    # حقل الرقم القومي للأم مع التحديث الفوري لإعادة تحميل الصفحة وتعبئة تاريخ الميلاد
+    raw_mom_id = st.text_input(
+        "الرقم القومى للام", 
+        value=st.session_state["c_الرقم القومى للام"], 
+        key="nat_id_mom_field", 
+        max_chars=14
+    )
+    
+    cleaned_mom_id = clean_digits(raw_mom_id, 14)
+    if cleaned_mom_id != st.session_state["c_الرقم القومى للام"]:
+        st.session_state["c_الرقم القومى للام"] = cleaned_mom_id
+        if len(cleaned_mom_id) == 14:
+            b_date_mom, _ = parse_national_id(cleaned_mom_id)
             if b_date_mom:
                 st.session_state["c_تاريخ ميلاد الام"] = b_date_mom
             else:
                 st.session_state["c_تاريخ ميلاد الام"] = ""
         else:
             st.session_state["c_تاريخ ميلاد الام"] = ""
-
-    # حقل الرقم القومي للأم مع ربطه بدالة التحديث الفوري
-    st.text_input(
-        "الرقم القومى للام", 
-        value=st.session_state["c_الرقم القومى للام"], 
-        key="nat_id_mom_field", 
-        max_chars=14,
-        on_change=update_mom_birth_date
-    )
+        st.rerun()
 
     # زر استرجاع بيانات الأسرة المسجلة
     if st.button("🔍 استرجاع بيانات الأسرة المسجلة", use_container_width=True):
